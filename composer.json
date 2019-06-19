@@ -1,0 +1,21 @@
+{
+    "name": "formatd/mailer",
+    "description": "Wrapper for Swiftmailer in Neos Flow Projects",
+    "type": "neos-package",
+    "require": {
+        "neos/flow": ">=4.0",
+        "neos/swiftmailer": "^6.0"
+    },
+    "suggest": {
+    },
+    "autoload": {
+        "psr-4": {
+            "FormatD\\Mailer\\": "Classes/"
+        }
+    },
+    "extra": {
+        "neos": {
+            "package-key": "FormatD.Mailer"
+        }
+    }
+}

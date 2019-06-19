@@ -1,0 +1,12 @@
+
+FormatD:
+  Mailer:
+    interceptAll:
+      active: false
+      recipients: []
+    bccAll:
+      active: false
+      recipients: []
+    defaultFrom:
+      address: 'example@example.com'
+      name: 'Example'
