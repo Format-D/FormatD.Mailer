@@ -20,12 +20,12 @@ Extend AbstractMailerService and add methods as needed following the example of 
 This is an example which intercepts all mail and redirects them to example@example.com and secondexample@example.com
 
 ```
-	FormatD:
-	  Mailer:
-		interceptAll:
-		  active: true
-		  recipients: ['example@example.com', 'secondexample@example.com']
-		bccAll:
-		  active: false
-		  recipients: []
+FormatD:
+  Mailer:
+    interceptAll:
+      active: true
+      recipients: ['example@example.com', 'secondexample@example.com']
+    bccAll:
+      active: false
+      recipients: []
 ```

@@ -2,6 +2,7 @@
     "name": "formatd/mailer",
     "description": "Wrapper for Swiftmailer in Neos Flow Projects",
     "type": "neos-package",
+    "license": "MIT",
     "require": {
         "neos/flow": ">=4.0",
         "neos/swiftmailer": "^6.0"
