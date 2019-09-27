@@ -30,7 +30,7 @@ abstract class AbstractMailerService
 	protected $objectManager;
 
 	/**
-	 * @Flow\InjectConfiguration(type="Settings", package="FormatD.Mailer", path="offer.bidding.wampIntegration")
+	 * @Flow\InjectConfiguration(type="Settings", package="FormatD.Mailer")
 	 * @var array
 	 */
 	protected $mailSettings;
