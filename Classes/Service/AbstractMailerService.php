@@ -105,9 +105,18 @@ abstract class AbstractMailerService
 	public function attachHtmlInlineImage($match) {
 		$path = $match[2];
 
-		// if in cli we do not know the baseurl so we request the file locally
-		if (FLOW_SAPITYPE == 'CLI' && !preg_match('#^http.*#', $path)) {
-			$path = FLOW_PATH_WEB . $path;
+		// only use local embed if nothing else can work (legacy mode)
+		if (!isset($this->mailSettings['localEmbed']) || $this->mailSettings['localEmbed'] === false) {
+				// if in cli we do not know the baseurl so we request the file locally
+				if (FLOW_SAPITYPE == 'CLI' && !preg_match('#^http.*#', $path)) {
+						$path = FLOW_PATH_WEB . $path;
+				}
+		} else if ($this->mailSettings['localEmbed']) {
+				if (preg_match('#^http.*#', $path) && $this->baseUri) {
+						// if we know the baseUri we remove it to be able to convert the path to a local path
+						$path = str_replace($this->baseUri, "", $path);
+				}
+				$path = FLOW_PATH_WEB . $path;
 		}
 
 		return $match[1].$this->processedMessage->embed(\Swift_Image::fromPath($path)).'"';

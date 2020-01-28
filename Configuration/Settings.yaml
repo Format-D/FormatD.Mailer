@@ -1,6 +1,7 @@
 
 FormatD:
   Mailer:
+    localEmbed: false
     interceptAll:
       active: false
       recipients: []
