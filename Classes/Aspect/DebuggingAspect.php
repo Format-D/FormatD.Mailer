@@ -36,7 +36,10 @@ class DebuggingAspect {
 
 			if ($this->settings['interceptAll']['active']) {
 				$oldTo = $message->getTo();
-				$message->setSubject('[intercepted '.key($oldTo).'] '.$message->getSubject());
+				$oldCc = $message->getCc();
+				$oldBcc = $message->getBcc();
+				$interceptedRecipients = key($oldTo) . ($oldCc ? ' CC: ' . key($oldCc) : '') . ($oldBcc ? ' BCC: ' . key($oldBcc) : '');
+				$message->setSubject('[intercepted '.$interceptedRecipients.'] '.$message->getSubject());
 
 				$message->setCc(array());
 				$message->setBcc(array());
