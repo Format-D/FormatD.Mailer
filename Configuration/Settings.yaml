@@ -5,6 +5,7 @@ FormatD:
     interceptAll:
       active: false
       recipients: []
+      noInterceptPatterns: []
     bccAll:
       active: false
       recipients: []

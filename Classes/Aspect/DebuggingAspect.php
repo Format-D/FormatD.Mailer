@@ -38,6 +38,16 @@ class DebuggingAspect {
 				$oldTo = $message->getTo();
 				$oldCc = $message->getCc();
 				$oldBcc = $message->getBcc();
+
+				foreach ($this->settings['interceptAll']['noInterceptPatterns'] as $pattern) {
+					if (preg_match($pattern, key($oldTo))) {
+						// let the mail through but clean all cc and bcc fields
+						$message->setCc(array());
+						$message->setBcc(array());
+						return;
+					}
+				}
+
 				$interceptedRecipients = key($oldTo) . ($oldCc ? ' CC: ' . key($oldCc) : '') . ($oldBcc ? ' BCC: ' . key($oldBcc) : '');
 				$message->setSubject('[intercepted '.$interceptedRecipients.'] '.$message->getSubject());
 
