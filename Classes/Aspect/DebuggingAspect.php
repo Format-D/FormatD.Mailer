@@ -10,6 +10,7 @@ use Neos\Flow\Annotations as Flow;
 
 /**
  * @Flow\Aspect
+ * @Flow\Introduce("class(Neos\SwiftMailer\Message)", traitName="FormatD\Mailer\Traits\InterceptionTrait")
  */
 class DebuggingAspect {
 
@@ -18,7 +19,7 @@ class DebuggingAspect {
 	 * @var array
 	 */
 	protected $settings;
-	
+
 	/**
 	 * Intercept all emails or add bcc according to package configuration
 	 *
@@ -35,6 +36,7 @@ class DebuggingAspect {
 			$message = $joinPoint->getProxy();
 
 			if ($this->settings['interceptAll']['active']) {
+
 				$oldTo = $message->getTo();
 				$oldCc = $message->getCc();
 				$oldBcc = $message->getBcc();
@@ -48,8 +50,14 @@ class DebuggingAspect {
 					}
 				}
 
+				// stop if this aspect is executed twice (happens if QueueAdaptor is installed)
+				if ($message->isIntercepted()) {
+					return;
+				}
+
 				$interceptedRecipients = key($oldTo) . ($oldCc ? ' CC: ' . key($oldCc) : '') . ($oldBcc ? ' BCC: ' . key($oldBcc) : '');
 				$message->setSubject('[intercepted '.$interceptedRecipients.'] '.$message->getSubject());
+				$message->setIntercepted(true);
 
 				$message->setCc(array());
 				$message->setBcc(array());
