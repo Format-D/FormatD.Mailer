@@ -96,31 +96,42 @@ abstract class AbstractMailerService
 		return preg_replace_callback('#(<img [^>]*[ ]?src=")([^"]+)"#', array($this, 'attachHtmlInlineImage'), $html);
 	}
 
-	/**
-	 * Substitution function called by preg_replace_callback
-	 *
-	 * @param $match
-	 * @return string
-	 */
-	public function attachHtmlInlineImage($match) {
-		$path = $match[2];
+    /**
+     * Substitution function called by preg_replace_callback
+     *
+     * @param $match
+     * @return string
+     */
+    public function attachHtmlInlineImage($match) {
+        $completeMatch = $match[0];
+        $imgTagStart = $match[1];
+        $path = $match[2];
+        $imgTagEnd = $match[3];
 
-		// only use local embed if nothing else can work (legacy mode)
-		if (!isset($this->mailSettings['localEmbed']) || $this->mailSettings['localEmbed'] === false) {
-				// if in cli we do not know the baseurl so we request the file locally
-				if (FLOW_SAPITYPE == 'CLI' && !preg_match('#^http.*#', $path)) {
-						$path = FLOW_PATH_WEB . $path;
-				}
-		} else if ($this->mailSettings['localEmbed']) {
-				if (preg_match('#^http.*#', $path) && $this->baseUri) {
-						// if we know the baseUri we remove it to be able to convert the path to a local path
-						$path = str_replace($this->baseUri, "", $path);
-				}
-				$path = FLOW_PATH_WEB . $path;
-		}
+        // you can disable embedding with data attribute (useful for tracking pixel)
+        if (preg_match('#data-fdmailer-embed="disable"#', $completeMatch)) {
+            return $completeMatch;
+        }
 
-		return $match[1].$this->processedMessage->embed(\Swift_Image::fromPath($path)).'"';
-	}
+        // only use local embed if nothing else can work (legacy mode)
+        if (!isset($this->mailSettings['localEmbed']) || $this->mailSettings['localEmbed'] === false) {
+            // if in cli we do not know the baseurl so we request the file locally
+            if (FLOW_SAPITYPE == 'CLI' && !preg_match('#^http.*#', $path)) {
+                $path = FLOW_PATH_WEB . $path;
+            }
+        } else if ($this->mailSettings['localEmbed']) {
+            if (preg_match('#^http.*#', $path) && $this->baseUri) {
+                // if we know the baseUri we remove it to be able to convert the path to a local path
+                $path = str_replace($this->baseUri, "", $path, $replaceCount);
+            }
+            if (!preg_match('#^http.*#', $path)) {
+                // if path is now relative to document root we prepend local path
+                $path = FLOW_PATH_WEB . $path;
+            }
+        }
+
+        return $imgTagStart.$this->processedMessage->embed(\Swift_Image::fromPath($path)).'"'.$imgTagEnd;
+    }
 
 	/**
 	 * Sets the mailcontent from a standalone view
