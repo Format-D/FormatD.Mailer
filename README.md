@@ -10,6 +10,24 @@ This package provides a service class intended to be used as base class for send
 In addition it counatins a debugging aspect for cutting off and/or redirecting all mails (sent by Swiftmailer) in a development environment.
 
 
+## Kompatiblität
+
+Versioning scheme:
+
+     1.0.0 
+     | | |
+     | | Bugfix Releases (non breaking)
+     | Neos Compatibility Releases (non breaking except framework dependencies)
+     Feature Releases (breaking)
+
+Releases und compatibility:
+
+| Package-Version | Neos Flow Version      |
+|-----------------|------------------------|
+| 1.1.x           | >= 6.x                 |
+| 1.0.x           | 4.x - 5.x              |
+
+
 ## Using the service in you own plugins to use fluid templates for mails
 
 Configure default from address:
