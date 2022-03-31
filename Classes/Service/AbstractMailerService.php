@@ -130,7 +130,7 @@ abstract class AbstractMailerService
             }
         }
 
-        return $imgTagStart.$this->processedMessage->embed(\Swift_Image::fromPath($path)).'"'.$imgTagEnd;
+        return $imgTagStart.$this->processedMessage->embed(\Swift_Image::fromPath(urldecode($path))).'"'.$imgTagEnd;
     }
 
 	/**
