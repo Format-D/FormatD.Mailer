@@ -130,6 +130,10 @@ abstract class AbstractMailerService
             }
         }
 
+	    if ($this->mailSettings['attachEmbeddedImages']) {
+		    $this->processedMessage->attach(\Swift_Attachment::fromPath(urldecode($path)));
+	    }
+
         return $imgTagStart.$this->processedMessage->embed(\Swift_Image::fromPath(urldecode($path))).'"'.$imgTagEnd;
     }
 

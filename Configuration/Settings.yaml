@@ -2,6 +2,7 @@
 FormatD:
   Mailer:
     localEmbed: false
+    attachEmbeddedImages: false
     interceptAll:
       active: false
       recipients: []
