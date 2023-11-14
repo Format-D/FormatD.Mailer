@@ -93,7 +93,7 @@ abstract class AbstractMailerService
 	 * @return string
 	 */
 	protected function attachHtmlInlineImages($html) {
-		return preg_replace_callback('#(<img [^>]*[ ]?src=")([^"]+)("[^>]*/>)#', array($this, 'attachHtmlInlineImage'), $html);
+		return preg_replace_callback('#(<img [^>]*[ ]?src=")([^"]+)("[^>]*>)#', array($this, 'attachHtmlInlineImage'), $html);
 	}
 
     /**
