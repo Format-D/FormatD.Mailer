@@ -1,8 +1,9 @@
 
 FormatD:
   Mailer:
-    localEmbed: false
-    attachEmbeddedImages: false
+    dsn: 'smtp://user:pass@smtp.example.com:25'
+    #localEmbed: false
+    #attachEmbeddedImages: false
     interceptAll:
       active: false
       recipients: []
