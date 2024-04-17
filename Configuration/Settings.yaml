@@ -1,9 +1,8 @@
-
 FormatD:
   Mailer:
     dsn: 'smtp://user:pass@smtp.example.com:25'
-    #localEmbed: false
-    #attachEmbeddedImages: false
+    localEmbed: false
+    attachEmbeddedImages: false
     interceptAll:
       active: false
       recipients: []
@@ -14,3 +13,5 @@ FormatD:
     defaultFrom:
       address: 'example@example.com'
       name: 'Example'
+    templateNodes:
+      test: ''

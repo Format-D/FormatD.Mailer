@@ -15,6 +15,7 @@ class MailerCommandController extends CommandController
 
     /**
     * @param string $to
+    * ./flow mailer:sendTest --to someone@somewhere.com
     */
     public function sendTestCommand($to)
     {
