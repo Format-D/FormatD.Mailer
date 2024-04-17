@@ -1,5 +1,4 @@
 include: Fragments/**/*
-include: Templates/**/*
 include: nodetypes://FormatD.Mailer/**/*.fusion
 
 root {
