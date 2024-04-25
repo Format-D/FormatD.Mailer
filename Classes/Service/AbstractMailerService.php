@@ -92,8 +92,7 @@ class AbstractMailerService
 
     protected function getHtml(Node $emailNode)
     {
-        #$emailUri = $this->contentRepositoryService->getNodeUri($emailNode);
-        $emailUri = '';
+        $emailUri = $this->contentRepositoryService->getNodeUri($emailNode);
 
         try {
             $response = $this->browser->request($emailUri);

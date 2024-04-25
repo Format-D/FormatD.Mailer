@@ -1,5 +1,8 @@
 FormatD:
   Mailer:
+    site:
+      siteNodeName: 'format-d-website'
+      contentRepositoryId: 'default'
     dsn: 'smtp://user:pass@smtp.example.com:25'
     localEmbed: false
     attachEmbeddedImages: false

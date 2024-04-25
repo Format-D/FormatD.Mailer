@@ -12,12 +12,11 @@ use Neos\ContentRepository\Core\Projection\Workspace\Workspace;
 use Neos\ContentRepository\Core\Projection\ContentGraph\Node;
 use GuzzleHttp\Psr7\Uri;
 use Neos\Flow\Mvc\Routing\UriBuilder;
-use Neos\Neos\Service\LinkingService;
-use Neos\Flow\Mvc\ActionResponse;
-use Neos\Flow\Mvc\ActionRequestFactory;
 use Psr\Http\Message\ServerRequestFactoryInterface;
 use Neos\Flow\Http\ServerRequestAttributes;
+use Neos\Flow\Mvc\ActionRequestFactory;
 use Neos\Flow\Mvc\Routing\Dto\RouteParameters;
+use Neos\Neos\FrontendRouting\NodeAddressFactory;
 
 /**
  * Various helper for CR and nodes
@@ -29,6 +28,9 @@ class ContentRepositoryService {
     #[Flow\InjectConfiguration(package: "Neos.Flow", path: "http.baseUri")]
     protected string $baseUri;
 
+    #[Flow\InjectConfiguration(package: "FormatD.Mailer", path: "site")]
+    protected array $siteConfig;
+
     #[Flow\Inject]
     protected ContentRepositoryRegistry $contentRepositoryRegistry;
 
@@ -38,9 +40,6 @@ class ContentRepositoryService {
     #[Flow\Inject]
     protected ServerRequestFactoryInterface $serverRequestFactory;
 
-    #[Flow\Inject]
-    protected LinkingService $linkingService;
-
     protected UriBuilder $uriBuilder;
 
     public function initializeObject()
@@ -48,10 +47,11 @@ class ContentRepositoryService {
         $httpRequest = $this->serverRequestFactory->createServerRequest('GET', new Uri($this->baseUri));
 
         if (isset($this->baseUri) && is_string($this->baseUri) && !empty($this->baseUri)) {
-            // Sets requestUriHost like RequestUriHostMiddleware does
             /** @var RouteParameters $routingParameters */
             $routingParameters = $httpRequest->getAttribute(ServerRequestAttributes::ROUTING_PARAMETERS) ?? RouteParameters::createEmpty();
             $routingParameters = $routingParameters->withParameter('requestUriHost', $this->baseUri);
+            $routingParameters = $routingParameters->withParameter('siteNodeName', $this->siteConfig['siteNodeName']);
+            $routingParameters = $routingParameters->withParameter('contentRepositoryId', $this->siteConfig['contentRepositoryId']);
 
             $httpRequestAttributes = $httpRequest->getAttributes();
             $httpRequestAttributes[ServerRequestAttributes::ROUTING_PARAMETERS] = $routingParameters;
@@ -83,21 +83,16 @@ class ContentRepositoryService {
         return $contentRepository->getContentGraph();
     }
 
-    public function getNodeUri(Node $node, $arguments = [], $format = 'html')
+    public function getNodeUri(Node $node, $arguments = [], $absolute = true, $format = 'html')
     {
-        # @todo fix this / make it work
-        return $this->linkingService->createNodeUri(
-            new \Neos\Flow\Mvc\Controller\ControllerContext(
-                $this->uriBuilder->getRequest(),
-                new ActionResponse(),
-                new \Neos\Flow\Mvc\Controller\Arguments([]),
-                $this->uriBuilder
-            ),
-            $node,
-            null,
-            $format,
-            true,
-            $arguments
-        );
+        $nodeAddressFactory = NodeAddressFactory::create($this->getContentRepository());
+        $nodeAddress = $nodeAddressFactory->createFromNode($node);
+
+        return $this->uriBuilder
+            ->setArguments($arguments)
+            ->setCreateAbsoluteUri($absolute)
+            ->setFormat($format)
+            ->uriFor('show', ['node' => $nodeAddress], 'Frontend\Node', 'Neos.Neos')
+        ;
     }
 }
