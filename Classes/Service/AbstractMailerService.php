@@ -1,17 +1,17 @@
 <?php
 namespace FormatD\Mailer\Service;
 
-use FormatD\Mailer\Traits\InterceptionTrait;
-use FormatD\Mailer\Service\ContentRepositoryService;
-use Symfony\Component\Mime\Address;
-use FormatD\Mailer\Factories\MailerFactory;
-use FormatD\Mailer\Factories\MailFactory;
-use Symfony\Component\Mailer\MailerInterface;
+use Neos\Flow\Core\Bootstrap;
 use Neos\ContentRepository\Core\SharedModel\Node\NodeAggregateId;
 use Neos\ContentRepository\Core\Projection\ContentGraph\Node;
-use Neos\Flow\Http\Client\Browser;
-use Neos\Flow\Http\Client\CurlEngine;
-use Neos\Flow\Http\Client\CurlEngineException;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\ClientException;
+use Symfony\Component\Mime\Address;
+use Symfony\Component\Mailer\MailerInterface;
+use FormatD\Mailer\Traits\InterceptionTrait;
+use FormatD\Mailer\Service\ContentRepositoryService;
+use FormatD\Mailer\Factories\MailerFactory;
+use FormatD\Mailer\Factories\MailFactory;
 use Neos\Flow\Annotations as Flow;
 
 /**
@@ -24,8 +24,11 @@ class AbstractMailerService
 
     use InterceptionTrait;
 
+    #[Flow\Inject(name: "FormatD.Mailer:MailerLogger")]
+    protected $mailerLogger;
+
     #[Flow\InjectConfiguration(package: "Neos.Flow", path: "http.baseUri")]
-	protected string $baseUri;
+    protected string $baseUri;
 
     #[Flow\Inject]
     protected ContentRepositoryService $contentRepositoryService;
@@ -36,23 +39,32 @@ class AbstractMailerService
     #[Flow\Inject]
     protected MailFactory $mailFactory;
 
-    #[Flow\Inject]
-	protected Browser $browser;
-
-    #[Flow\Inject]
-	protected CurlEngine $browserRequestEngine;
-
     protected MailerInterface $mailer;
 
     protected Address $defaultFromAddress;
+
+    protected $client;
 
     public function initializeObject()
     {
         $this->mailer = $this->mailerFactory->createMailer();
         $this->defaultFromAddress = new Address($this->configuration['defaultFrom']['address'], $this->configuration['defaultFrom']['name']);
+
+        $clientOptions = [];
+        $clientOptions = $this->setSslVerification($clientOptions);
+        $this->client = new Client($clientOptions);
     }
 
-	protected function send($subject, $to, $from, $text, $html) {
+    protected function setSslVerification(array $clientOptions): array
+    {
+        $flowContext = Bootstrap::getEnvironmentConfigurationSetting('FLOW_CONTEXT');
+        $clientOptions['verify'] = str_contains($flowContext, 'Development') ? false : true;
+
+        return $clientOptions;
+    }
+
+    protected function send($subject, $to, $from, $text, $html)
+    {
         $mail = $this->mailFactory->createMail(
             $subject,
             $to,
@@ -66,12 +78,12 @@ class AbstractMailerService
         }
 
         $this->mailer->send($mail);
-	}
+    }
 
-	/**
-	 * @param array|Address|string $to
-	 */
-	public function sendTest($to)
+    /**
+     * @param array|Address|string $to
+     */
+    public function sendTest($to)
     {
         $contentRepository = $this->contentRepositoryService->getContentRepository();
         $workspace = $this->contentRepositoryService->getWorkspace($contentRepository);
@@ -88,21 +100,20 @@ class AbstractMailerService
         );
 
         $this->mailer->send($mail);
-	}
+    }
 
     protected function getHtml(Node $emailNode)
     {
         $emailUri = $this->contentRepositoryService->getNodeUri($emailNode);
 
         try {
-            $response = $this->browser->request($emailUri);
-        } catch (CurlEngineException $e) {
-            // log $response->getStatusCode()
-            $response = $this->browser->request($emailUri);
+            $response = $this->client->request('GET', $emailUri . 'sdkf');
+        } catch (ClientException $e) {
+            $this->mailerLogger->error("MAILER_ERROR :: " . $e->getResponse()->getBody()->getContents());
         }
 
         if ($response->getStatusCode() !== 200) {
-            // log $response->getStatusCode()
+            $this->mailerLogger->error("MAILER_ERROR :: " . $response->getStatusCode());
         }
 
         $newsletterContent = $response->getBody()->getContents();

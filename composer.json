@@ -1,6 +1,6 @@
 {
 	"name": "formatd/mailer",
-	"description": "Wrapper for Swiftmailer in Neos Flow Projects",
+	"description": "Send mails in Neos with symfony mailer",
 	"type": "neos-package",
 	"license": "MIT",
 	"require": {
