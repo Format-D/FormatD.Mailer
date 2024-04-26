@@ -8,7 +8,7 @@ use Neos\Flow\Annotations as Flow;
 
 trait InterceptionTrait {
 
-    #[Flow\InjectConfiguration(package: "FormatD.Mailer", path: "")]
+    #[Flow\InjectConfiguration(package: "FormatD.Mailer")]
     protected array $configuration = [];
 
     /**

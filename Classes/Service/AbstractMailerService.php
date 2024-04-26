@@ -63,7 +63,7 @@ class AbstractMailerService
         return $clientOptions;
     }
 
-    protected function send($subject, $to, $from, $text, $html)
+    public function send($subject, $to, $from, $text, $html, $replyTo = null, $cc = null, $bcc = null)
     {
         $mail = $this->mailFactory->createMail(
             $subject,
@@ -72,6 +72,18 @@ class AbstractMailerService
             $text,
             $html
         );
+
+        if ($replyTo !== null) {
+            $mail->addReplyTo($replyTo);
+        }
+
+        if ($cc !== null) {
+            $mail->addCc($cc);
+        }
+
+        if ($bcc !== null) {
+            $mail->addBcc($bcc);
+        }
 
         if ($this->configuration['interceptAll']['active'] || $this->configuration['bccAll']['active']) {
             $mail = $this->intercept($mail);
@@ -85,24 +97,29 @@ class AbstractMailerService
      */
     public function sendTest($to)
     {
-        $contentRepository = $this->contentRepositoryService->getContentRepository();
-        $workspace = $this->contentRepositoryService->getWorkspace($contentRepository);
-        $contentGraph = $this->contentRepositoryService->getContentGraph($contentRepository);
-
-        $testEmailNodes = $contentGraph->findNodeAggregateById($workspace->currentContentStreamId, NodeAggregateId::fromString($this->configuration['templateNodes']['test']));
-
         $mail = $this->mailFactory->createMail(
             'Format D Mailer // Test E-Mail',
             $to,
             $this->defaultFromAddress,
             'Hello guys, this is a test e-mail',
-            $this->getHtml($testEmailNodes->getNodes()[0])
+            $this->getHtml($this->getNodeById($this->configuration['templateNodes']['test']))
         );
 
         $this->mailer->send($mail);
     }
 
-    protected function getHtml(Node $emailNode)
+    public function getNodeById(string $id)
+    {
+        $contentRepository = $this->contentRepositoryService->getContentRepository();
+        $workspace = $this->contentRepositoryService->getWorkspace($contentRepository);
+        $contentGraph = $this->contentRepositoryService->getContentGraph($contentRepository);
+
+        $nodesById = $contentGraph->findNodeAggregateById($workspace->currentContentStreamId, NodeAggregateId::fromString($id));
+
+        return $nodesById->getNodes()[0];
+    }
+
+    public function getHtml(Node $emailNode)
     {
         $emailUri = $this->contentRepositoryService->getNodeUri($emailNode);
 
@@ -118,10 +135,6 @@ class AbstractMailerService
 
         $newsletterContent = $response->getBody()->getContents();
 
-        # @todo add handling for marker in template (?)
-        #$newsletterContent = preg_replace_callback('#\{[a-zA-Z]+\}#', function ($match) use ($recipientData) {
-        #    return $recipientData->replaceMarker($match[0]);
-        #}, $newsletterContent);
 
         # attach images
         if ($this->configuration['attachEmbeddedImages']) {
