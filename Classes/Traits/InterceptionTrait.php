@@ -40,18 +40,19 @@ trait InterceptionTrait {
 
         foreach ($this->configuration['interceptAll']['noInterceptPatterns'] as $pattern) {
             if (preg_match($pattern, key($originalTo))) {
-                $mail->to(new Address('somewhere@bla.com'));
-                $mail->bcc(new Address('somewhere@bla.com'));
+                $mail->to(new Address('somewhere@example.com'));
+                $mail->bcc(new Address('somewhere@example.com'));
                 return;
             }
         }
 
         # @todo check IF and HOW this needs to be adapted to work with job / mail queue
-        $interceptedRecipients = key($originalTo) . ($originalCc ? ' CC: ' . key($originalCc) : '') . ($originalBcc ? ' BCC: ' . key($originalBcc) : '');
+        $interceptedRecipients = $originalTo[0]->getAddress() . ($originalCc ? ' CC: ' . $originalCc[0]->getAddress() : '') . ($originalBcc ? ' BCC: ' . $originalBcc[0]->getAddress() : '');
         $mail->subject('[intercepted ' . $interceptedRecipients . '] ' . $mail->getSubject());
 
-        $mail->cc(new Address('somewhere@bla.com'));
-        $mail->bcc(new Address('somewhere@bla.com'));
+        $mail->cc(new Address('somewhere@example.com'));
+        $mail->bcc(new Address('somewhere@example.com'));
+
         $first = true;
         foreach ($this->configuration['interceptAll']['recipients'] as $email) {
             $first ? $mail->to($email) : $mail->addCc($email);
