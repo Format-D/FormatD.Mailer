@@ -5,7 +5,7 @@ namespace FormatD\Mailer\Service;
 use Neos\Flow\Annotations as Flow;
 use Neos\ContentRepository\Core\ContentRepository;
 use Neos\ContentRepositoryRegistry\ContentRepositoryRegistry;
-use Neos\ContentRepository\Core\Factory\ContentRepositoryId;
+use Neos\ContentRepository\Core\SharedModel\ContentRepository\ContentRepositoryId;
 use Neos\ContentRepository\Core\Projection\ContentGraph\ContentGraphInterface;
 use Neos\ContentRepository\Core\SharedModel\Workspace\WorkspaceName;
 use Neos\ContentRepository\Core\Projection\Workspace\Workspace;
