@@ -108,16 +108,15 @@ class AbstractMailerService
         $this->mailer->send($mail);
     }
 
-    public function getNodeById(string $id)
-    {
-        $contentRepository = $this->contentRepositoryService->getContentRepository();
-        $workspace = $this->contentRepositoryService->getWorkspace($contentRepository);
-        $contentGraph = $this->contentRepositoryService->getContentGraph($contentRepository);
+	public function getNodeById(string $id)
+	{
+		$contentRepository = $this->contentRepositoryService->getContentRepository();
+		$contentGraph = $this->contentRepositoryService->getContentGraph($contentRepository);
 
-        $nodesById = $contentGraph->findNodeAggregateById($workspace->currentContentStreamId, NodeAggregateId::fromString($id));
+		$nodesById = $contentGraph->findNodeAggregateById(NodeAggregateId::fromString($id));
 
-        return $nodesById->getNodes()[0];
-    }
+		return $nodesById->getNodes()[0];
+	}
 
     public function getHtml(Node $emailNode)
     {

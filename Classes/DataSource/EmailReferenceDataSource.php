@@ -6,7 +6,8 @@ use Neos\Flow\Annotations as Flow;
 use Neos\Neos\Service\DataSource\AbstractDataSource;
 use Neos\ContentRepository\Core\Projection\ContentGraph\Node;
 
-class EmailReferenceDataSource extends AbstractDataSource {
+class EmailReferenceDataSource extends AbstractDataSource
+{
 
 	/**
 	 * @var string
@@ -24,18 +25,19 @@ class EmailReferenceDataSource extends AbstractDataSource {
 	 * @return array|mixed
 	 * @throws \Neos\Eel\Exception
 	 */
-	public function getData(Node $node = null, array $arguments = []) {
+	public function getData(Node $node = null, array $arguments = [])
+	{
 		$q = new FlowQuery([$node]);
 		$emailNodes = $q
 			->parents('[instanceof FormatD.DesignSystem:Site]')
-            ->find('[instanceof FormatD.Mailer:Document.Email]')
+			->find('[instanceof FormatD.Mailer:Document.Email]')
 			->get();
 
 		$data = [];
 		foreach ($emailNodes as $emailNode) {
 			$data[] = [
 				'label' => $emailNode->getLabel(),
-				'value' => $emailNode->nodeAggregateId,
+				'value' => $emailNode->aggregateId,
 				'icon' => static::$icon
 			];
 		}
