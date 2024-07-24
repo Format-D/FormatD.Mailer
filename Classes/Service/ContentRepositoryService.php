@@ -78,10 +78,10 @@ class ContentRepositoryService {
         return $contentRepository->getWorkspaceFinder()->findOneByName(WorkspaceName::fromString($workspaceName));
     }
 
-    public function getContentGraph(ContentRepository $contentRepository): ContentGraphInterface
-    {
-        return $contentRepository->getContentGraph();
-    }
+	public function getContentGraph(ContentRepository $contentRepository, string $workspaceName = 'live'): ContentGraphInterface
+	{
+		return $contentRepository->getContentGraph(WorkspaceName::fromString($workspaceName));
+	}
 
     public function getNodeUri(Node $node, $arguments = [], $absolute = true, $format = 'html')
     {
