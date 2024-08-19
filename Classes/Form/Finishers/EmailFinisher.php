@@ -114,13 +114,20 @@ class EmailFinisher extends AbstractFinisher
 
     protected function replaceMarkerWithFormValues($formValues, $emailHtml)
     {
-        $markers = preg_match_all('#(\#\#\#)(.*?)(\#\#\#)#', $emailHtml, $matches);
+        preg_match_all('#\#\#\#(.*?)\#\#\##', $emailHtml, $matches);
 
-        if(isset($matches[2])) {
-            foreach($matches[2] as $match) {
-                if(isset($formValues[$match])){
-                    $emailHtml = preg_replace('/(\#\#\#)('.$match.')(\#\#\#)/', $formValues[$match], $emailHtml);
+        if (isset($matches[1])) {
+            foreach ($matches[1] as $match) {
+                $nestedMatch = explode('.', $match);
+                $replacement = '';
+
+                if (count($nestedMatch) > 1 && isset($formValues[$nestedMatch[0]][$nestedMatch[1]])) {
+                    $replacement = $formValues[$nestedMatch[0]][$nestedMatch[1]];
+                } elseif (isset($formValues[$match])) {
+                    $replacement = $formValues[$match];
                 }
+
+                $emailHtml = str_replace("###{$match}###", $replacement, $emailHtml);
             }
         }
 

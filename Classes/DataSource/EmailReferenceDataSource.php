@@ -5,6 +5,7 @@ use Neos\Eel\FlowQuery\FlowQuery;
 use Neos\Flow\Annotations as Flow;
 use Neos\Neos\Service\DataSource\AbstractDataSource;
 use Neos\ContentRepository\Core\Projection\ContentGraph\Node;
+use Neos\Neos\Domain\NodeLabel\NodeLabelGeneratorInterface;
 
 class EmailReferenceDataSource extends AbstractDataSource
 {
@@ -18,6 +19,9 @@ class EmailReferenceDataSource extends AbstractDataSource
 	 * @var string
 	 */
 	protected static $icon = 'icon-envelope';
+
+    #[Flow\Inject]
+    protected NodeLabelGeneratorInterface $nodeLabelGenerator;
 
 	/**
 	 * @param Node|null $node
@@ -36,7 +40,7 @@ class EmailReferenceDataSource extends AbstractDataSource
 		$data = [];
 		foreach ($emailNodes as $emailNode) {
 			$data[] = [
-				'label' => $emailNode->getLabel(),
+                'label' => $this->nodeLabelGenerator->getLabel($emailNode),
 				'value' => $emailNode->aggregateId,
 				'icon' => static::$icon
 			];

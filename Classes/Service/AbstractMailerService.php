@@ -120,10 +120,10 @@ class AbstractMailerService
 
     public function getHtml(Node $emailNode)
     {
-        $emailUri = $this->contentRepositoryService->getNodeUri($emailNode);
+        $emailUri = $this->contentRepositoryService->uriForNode($emailNode);
 
         try {
-            $response = $this->client->request('GET', $emailUri . 'sdkf');
+            $response = $this->client->request('GET', $emailUri);
         } catch (ClientException $e) {
             $this->mailerLogger->error("MAILER_ERROR :: " . $e->getResponse()->getBody()->getContents());
         }

@@ -10,13 +10,16 @@ use Neos\ContentRepository\Core\Projection\ContentGraph\ContentGraphInterface;
 use Neos\ContentRepository\Core\SharedModel\Workspace\WorkspaceName;
 use Neos\ContentRepository\Core\Projection\Workspace\Workspace;
 use Neos\ContentRepository\Core\Projection\ContentGraph\Node;
+use Neos\ContentRepository\Core\SharedModel\Node\NodeAddress;
 use GuzzleHttp\Psr7\Uri;
-use Neos\Flow\Mvc\Routing\UriBuilder;
+use Neos\Flow\Mvc\ActionRequest;
+use Neos\Neos\FrontendRouting\NodeUriBuilderFactory;
+use Neos\Neos\FrontendRouting\Options;
 use Psr\Http\Message\ServerRequestFactoryInterface;
 use Neos\Flow\Http\ServerRequestAttributes;
 use Neos\Flow\Mvc\ActionRequestFactory;
 use Neos\Flow\Mvc\Routing\Dto\RouteParameters;
-use Neos\Neos\FrontendRouting\NodeAddressFactory;
+use Psr\Http\Message\UriInterface;
 
 /**
  * Various helper for CR and nodes
@@ -40,7 +43,10 @@ class ContentRepositoryService {
     #[Flow\Inject]
     protected ServerRequestFactoryInterface $serverRequestFactory;
 
-    protected UriBuilder $uriBuilder;
+    #[Flow\Inject]
+    protected NodeUriBuilderFactory $nodeUriBuilderFactory;
+
+    protected ActionRequest $actionRequest;
 
     public function initializeObject()
     {
@@ -61,10 +67,7 @@ class ContentRepositoryService {
             $reflectedHttpRequestAttributes->setValue($httpRequest, $httpRequestAttributes);
         }
 
-        $request = $this->actionRequestFactory->createActionRequest($httpRequest);
-        $uriBuilder = new UriBuilder();
-        $uriBuilder->setRequest($request);
-        $this->uriBuilder = $uriBuilder;
+        $this->actionRequest = $this->actionRequestFactory->createActionRequest($httpRequest);
     }
 
     public function getContentRepository(string $contentRepositoryId = 'default'): ContentRepository
@@ -83,16 +86,15 @@ class ContentRepositoryService {
 		return $contentRepository->getContentGraph(WorkspaceName::fromString($workspaceName));
 	}
 
-    public function getNodeUri(Node $node, $arguments = [], $absolute = true, $format = 'html')
+    public function uriForNode(Node $node, ActionRequest $actionRequest = null, $absolute = true, $format = 'html'): UriInterface
     {
-        $nodeAddressFactory = NodeAddressFactory::create($this->getContentRepository());
-        $nodeAddress = $nodeAddressFactory->createFromNode($node);
-
-        return $this->uriBuilder
-            ->setArguments($arguments)
-            ->setCreateAbsoluteUri($absolute)
-            ->setFormat($format)
-            ->uriFor('show', ['node' => $nodeAddress], 'Frontend\Node', 'Neos.Neos')
+        $request = $actionRequest ? $actionRequest : $this->actionRequest;
+        return $this->nodeUriBuilderFactory
+            ->forActionRequest($request)
+            ->uriFor(
+                NodeAddress::fromNode($node),
+                $absolute ? Options::createEmpty()->withCustomFormat($format)->withForceAbsolute() : Options::createEmpty()->withCustomFormat($format)
+            )
         ;
     }
 }
