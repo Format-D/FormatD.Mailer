@@ -92,7 +92,6 @@ Releases und compatibility:
 
 | Package Version | Neos Flow Version      |
 |-----------------|------------------------|
-| 3.0.x           | >= 9.x                 |
-| 2.0.x           | >= 8.x < 9.x           |
+| 2.0.x           | >= 9.x                 |
 | 1.1.x           | >= 6.x                 |
 | 1.0.x           | 4.x - 5.x              |
