@@ -78,7 +78,7 @@ class ContentRepositoryService {
 
     public function getWorkspace(ContentRepository $contentRepository, string $workspaceName = 'live'): Workspace
     {
-        return $contentRepository->getWorkspaceFinder()->findOneByName(WorkspaceName::fromString($workspaceName));
+        return $contentRepository->findWorkspaceByName(WorkspaceName::fromString($workspaceName));
     }
 
 	public function getContentGraph(ContentRepository $contentRepository, string $workspaceName = 'live'): ContentGraphInterface
