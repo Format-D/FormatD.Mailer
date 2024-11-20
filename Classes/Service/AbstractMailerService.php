@@ -4,6 +4,7 @@ namespace FormatD\Mailer\Service;
 use Neos\Flow\Core\Bootstrap;
 use Neos\ContentRepository\Core\SharedModel\Node\NodeAggregateId;
 use Neos\ContentRepository\Core\Projection\ContentGraph\Node;
+use Neos\ContentRepository\Core\Projection\ContentGraph\VisibilityConstraints;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
 use Symfony\Component\Mime\Address;
@@ -113,9 +114,15 @@ class AbstractMailerService
 		$contentRepository = $this->contentRepositoryService->getContentRepository();
 		$contentGraph = $this->contentRepositoryService->getContentGraph($contentRepository);
 
-		$nodesById = $contentGraph->findNodeAggregateById(NodeAggregateId::fromString($id));
+        $generalizations = $contentRepository->getVariationGraph()->getRootGeneralizations();
+        $dimensionSpacePoint = reset($generalizations);
 
-		return $nodesById->getNodes()[0];
+        $subgraph = $contentGraph->getSubgraph(
+            $dimensionSpacePoint,
+            VisibilityConstraints::withoutRestrictions(),
+        );
+
+        return $subgraph->findNodeById(NodeAggregateId::fromString($id));
 	}
 
     public function getHtml(Node $emailNode)
@@ -133,7 +140,6 @@ class AbstractMailerService
         }
 
         $newsletterContent = $response->getBody()->getContents();
-
 
         # attach images
         if ($this->configuration['attachEmbeddedImages']) {
