@@ -1,36 +1,64 @@
 <?php
 namespace FormatD\Mailer\Traits;
 
-/*                                                                        *
- * This script belongs to the Flow package "FormatD.Mailer".              *
- *                                                                        */
 
+use Symfony\Component\Mime\Address;
+use Symfony\Component\Mime\Email;
 use Neos\Flow\Annotations as Flow;
-
 
 trait InterceptionTrait {
 
-	/**
-	 * @var boolean
-	 */
-	protected $intercepted = false;
+    #[Flow\InjectConfiguration(package: "FormatD.Mailer")]
+    protected array $configuration = [];
 
-	/**
-	 * @return bool
-	 */
-	public function isIntercepted(): bool
-	{
-		return $this->intercepted;
-	}
+    /**
+     * @param Email $mail
+     */
+    protected function intercept($mail)
+    {
+        if ($this->configuration['interceptAll']['active']) {
+           $mail = $this->interceptAll($mail);
+        }
 
-	/**
-	 * @param bool $intercepted
-	 */
-	public function setIntercepted(bool $intercepted): void
-	{
-		$this->intercepted = $intercepted;
-	}
+        if ($this->configuration['bccAll']['active']) {
+            foreach ($this->configuration['bccAll']['recipients'] as $email) {
+                $mail = $mail->addBcc($email);
+            }
+        }
 
+        return $mail;
+    }
+
+    /**
+     * @param Email $mail
+     */
+    protected function interceptAll($mail)
+    {
+        $originalTo = $mail->getTo();
+        $originalCc = $mail->getCc();
+        $originalBcc = $mail->getBcc();
+
+        foreach ($this->configuration['interceptAll']['noInterceptPatterns'] as $pattern) {
+            if (preg_match($pattern, key($originalTo))) {
+                $mail->to(new Address('somewhere@example.com'));
+                $mail->bcc(new Address('somewhere@example.com'));
+                return;
+            }
+        }
+
+        # @todo check IF and HOW this needs to be adapted to work with job / mail queue
+        $interceptedRecipients = $originalTo[0]->getAddress() . ($originalCc ? ' CC: ' . $originalCc[0]->getAddress() : '') . ($originalBcc ? ' BCC: ' . $originalBcc[0]->getAddress() : '');
+        $mail->subject('[intercepted ' . $interceptedRecipients . '] ' . $mail->getSubject());
+
+        $mail->cc(new Address('somewhere@example.com'));
+        $mail->bcc(new Address('somewhere@example.com'));
+
+        $first = true;
+        foreach ($this->configuration['interceptAll']['recipients'] as $email) {
+            $first ? $mail->to($email) : $mail->addCc($email);
+            $first = false;
+        }
+
+        return $mail;
+    }
 }
-
-?>

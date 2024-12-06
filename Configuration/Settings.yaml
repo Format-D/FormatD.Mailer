@@ -1,6 +1,9 @@
-
 FormatD:
   Mailer:
+    site:
+      siteNodeName: 'format-d-website'
+      contentRepositoryId: 'default'
+    dsn: 'smtp://user:pass@smtp.example.com:25'
     localEmbed: false
     attachEmbeddedImages: false
     interceptAll:
@@ -12,4 +15,9 @@ FormatD:
       recipients: []
     defaultFrom:
       address: 'example@example.com'
-      name: 'Example'
+      name: 'Example From'
+    defaultTo:
+      address: 'example@example.com'
+      name: 'Example To'
+    templateNodes:
+      test: ''

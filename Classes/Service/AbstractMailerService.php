@@ -1,100 +1,160 @@
 <?php
 namespace FormatD\Mailer\Service;
 
-/*
- * This file is part of the FormatD.Mailer package.
- */
-
+use Neos\Flow\Core\Bootstrap;
+use Neos\ContentRepository\Core\SharedModel\Node\NodeAggregateId;
+use Neos\ContentRepository\Core\Projection\ContentGraph\Node;
+use Neos\ContentRepository\Core\Projection\ContentGraph\VisibilityConstraints;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\ClientException;
+use Symfony\Component\Mime\Address;
+use Symfony\Component\Mailer\MailerInterface;
+use FormatD\Mailer\Traits\InterceptionTrait;
+use FormatD\Mailer\Service\ContentRepositoryService;
+use FormatD\Mailer\Factories\MailerFactory;
+use FormatD\Mailer\Factories\MailFactory;
 use Neos\Flow\Annotations as Flow;
 
 /**
- * A Abstract Base MailService to extend in custom projects
+ * Mail service - can be extended in own packages
  *
  * @Flow\Scope("singleton")
  */
-abstract class AbstractMailerService
+class AbstractMailerService
 {
 
-	/**
-	 * Is only there to don't loose backwards compatibility
-	 *
-	 * @Flow\Inject
-	 * @var \Neos\Flow\Configuration\ConfigurationManager
-	 */
-	protected $configurationManager;
+    use InterceptionTrait;
 
-	/**
-	 * @Flow\Inject
-	 * @var \Neos\Flow\ObjectManagement\ObjectManagerInterface
-	 */
-	protected $objectManager;
+    #[Flow\Inject(name: "FormatD.Mailer:MailerLogger")]
+    protected $mailerLogger;
 
-	/**
-	 * @Flow\InjectConfiguration(type="Settings", package="FormatD.Mailer")
-	 * @var array
-	 */
-	protected $mailSettings;
+    #[Flow\InjectConfiguration(package: "Neos.Flow", path: "http.baseUri")]
+    protected string $baseUri;
 
-	/**
-	 * @Flow\InjectConfiguration(type="Settings", package="Neos.Flow", path="http.baseUri")
-	 * @var string
-	 */
-	protected $baseUri;
+    #[Flow\Inject]
+    protected ContentRepositoryService $contentRepositoryService;
 
-	/**
-	 * @var array
-	 */
-	protected $defaultFrom = array();
+    #[Flow\Inject]
+    protected MailerFactory $mailerFactory;
 
-	/**
-	 * Message which is processed at the moment
-	 *
-	 * @var \Neos\SwiftMailer\Message
-	 */
-	protected $processedMessage;
+    #[Flow\Inject]
+    protected MailFactory $mailFactory;
 
-	/**
-	 * Get Configuration
-	 */
-	public function initializeObject() {
-		$this->defaultFrom = array($this->mailSettings['defaultFrom']['address'] => $this->mailSettings['defaultFrom']['name']);
+    protected MailerInterface $mailer;
+
+    protected Address $defaultFromAddress;
+
+    protected $client;
+
+    public function initializeObject()
+    {
+        $this->mailer = $this->mailerFactory->createMailer();
+        $this->defaultFromAddress = new Address($this->configuration['defaultFrom']['address'], $this->configuration['defaultFrom']['name']);
+
+        $clientOptions = [];
+        $clientOptions = $this->setSslVerification($clientOptions);
+        $this->client = new Client($clientOptions);
+    }
+
+    protected function setSslVerification(array $clientOptions): array
+    {
+        $flowContext = Bootstrap::getEnvironmentConfigurationSetting('FLOW_CONTEXT');
+        $clientOptions['verify'] = str_contains($flowContext, 'Development') ? false : true;
+
+        return $clientOptions;
+    }
+
+    public function send($subject, $to, $from, $text, $html, $replyTo = null, $cc = null, $bcc = null)
+    {
+        $mail = $this->mailFactory->createMail(
+            $subject,
+            $to,
+            $from ? $from : $this->defaultFromAddress,
+            $text,
+            $html
+        );
+
+        if ($replyTo !== null) {
+            $mail->addReplyTo($replyTo);
+        }
+
+        if ($cc !== null) {
+            $mail->addCc($cc);
+        }
+
+        if ($bcc !== null) {
+            $mail->addBcc($bcc);
+        }
+
+        if ($this->configuration['interceptAll']['active'] || $this->configuration['bccAll']['active']) {
+            $mail = $this->intercept($mail);
+        }
+
+        $this->mailer->send($mail);
+    }
+
+    /**
+     * @param array|Address|string $to
+     */
+    public function sendTest($to)
+    {
+        $mail = $this->mailFactory->createMail(
+            'Format D Mailer // Test E-Mail',
+            $to,
+            $this->defaultFromAddress,
+            'Hello guys, this is a test e-mail',
+            $this->getHtml($this->getNodeById($this->configuration['templateNodes']['test']))
+        );
+
+        $this->mailer->send($mail);
+    }
+
+	public function getNodeById(string $id)
+	{
+		$contentRepository = $this->contentRepositoryService->getContentRepository();
+		$contentGraph = $this->contentRepositoryService->getContentGraph($contentRepository);
+
+        $generalizations = $contentRepository->getVariationGraph()->getRootGeneralizations();
+        $dimensionSpacePoint = reset($generalizations);
+
+        $subgraph = $contentGraph->getSubgraph(
+            $dimensionSpacePoint,
+            VisibilityConstraints::withoutRestrictions(),
+        );
+
+        return $subgraph->findNodeById(NodeAggregateId::fromString($id));
 	}
 
-	/**
-	 * Creates new message object and stores it as processedMessage
-	 *
-	 * @return \Neos\SwiftMailer\Message
-	 */
-	public function createMessage() {
-		$message = $this->objectManager->get('Neos\SwiftMailer\Message');
-		$message->setFrom($this->defaultFrom);
-		$this->processedMessage = $message;
-		return $message;
-	}
+    public function getHtml(Node $emailNode)
+    {
+        $emailUri = $this->contentRepositoryService->uriForNode($emailNode);
 
-	/**
-	 * Creates StandaloneView from templatePath and assigns default variables
-	 *
-	 * @param $templatePath
-	 * @return \Neos\FluidAdaptor\View\StandaloneView
-	 */
-	public function createStandaloneView($templatePath) {
-		$view = $this->objectManager->get('Neos\FluidAdaptor\View\StandaloneView');
-		$view->setTemplatePathAndFilename('resource://'.$templatePath);
-		$view->setFormat('html');
-		$view->assign('baseUri', $this->baseUri);
-		return $view;
-	}
+        try {
+            $response = $this->client->request('GET', $emailUri);
+        } catch (ClientException $e) {
+            $this->mailerLogger->error("MAILER_ERROR :: " . $e->getResponse()->getBody()->getContents());
+        }
 
-	/**
-	 * Convert inline images in html to attached ones
-	 *
-	 * @param string $html
-	 * @return string
-	 */
-	protected function attachHtmlInlineImages($html) {
-		return preg_replace_callback('#(<img [^>]*[ ]?src=")([^"]+)("[^>]*>)#', array($this, 'attachHtmlInlineImage'), $html);
-	}
+        if ($response->getStatusCode() !== 200) {
+            $this->mailerLogger->error("MAILER_ERROR :: " . $response->getStatusCode());
+        }
+
+        $newsletterContent = $response->getBody()->getContents();
+
+        # attach images
+        if ($this->configuration['attachEmbeddedImages']) {
+            $newsletterContent = $this->attachHtmlInlineImages($newsletterContent);
+        }
+
+        # @todo add attachment handling
+
+        return $newsletterContent;
+    }
+
+    protected function attachHtmlInlineImages($html)
+    {
+        return preg_replace_callback('#(<img [^>]*[ ]?src=")([^"]+)("[^>]*>)#', array($this, 'attachHtmlInlineImage'), $html);
+    }
 
     /**
      * Substitution function called by preg_replace_callback
@@ -102,7 +162,8 @@ abstract class AbstractMailerService
      * @param $match
      * @return string
      */
-    public function attachHtmlInlineImage($match) {
+    public function attachHtmlInlineImage($match)
+    {
         $completeMatch = $match[0];
         $imgTagStart = $match[1];
         $path = $match[2];
@@ -114,12 +175,12 @@ abstract class AbstractMailerService
         }
 
         // only use local embed if nothing else can work (legacy mode)
-        if (!isset($this->mailSettings['localEmbed']) || $this->mailSettings['localEmbed'] === false) {
+        if (!isset($this->configuration['localEmbed']) || $this->configuration['localEmbed'] === false) {
             // if in cli we do not know the baseurl so we request the file locally
             if (FLOW_SAPITYPE == 'CLI' && !preg_match('#^http.*#', $path)) {
                 $path = FLOW_PATH_WEB . $path;
             }
-        } else if ($this->mailSettings['localEmbed']) {
+        } else if ($this->configuration['localEmbed']) {
             if (preg_match('#^http.*#', $path) && $this->baseUri) {
                 // if we know the baseUri we remove it to be able to convert the path to a local path
                 $path = str_replace($this->baseUri, "", $path, $replaceCount);
@@ -130,60 +191,12 @@ abstract class AbstractMailerService
             }
         }
 
-	    if ($this->mailSettings['attachEmbeddedImages']) {
-		    $this->processedMessage->attach(\Swift_Attachment::fromPath(urldecode($path)));
-	    }
+        if ($this->configuration['attachEmbeddedImages']) {
+            #$this->processedMessage->attach(\Swift_Attachment::fromPath(urldecode($path)));
+            # @todo attach resource to symfony mail
+        }
 
-        return $imgTagStart.$this->processedMessage->embed(\Swift_Image::fromPath(urldecode($path))).'"'.$imgTagEnd;
+        #return $imgTagStart . $this->processedMessage->embed(\Swift_Image::fromPath(urldecode($path))) . '"' . $imgTagEnd;
+        return $imgTagStart . ' ' . $imgTagEnd;
     }
-
-	/**
-	 * Sets the mailcontent from a standalone view
-	 *
-	 * @param \Neos\SwiftMailer\Message $message
-	 * @param \Neos\FluidAdaptor\View\StandaloneView $view
-	 * @param bool $embedImages
-	 */
-	protected function setMailContentFromStandaloneView(\Neos\SwiftMailer\Message $message, \Neos\FluidAdaptor\View\StandaloneView $view, $embedImages = false) {
-
-		$subject = trim($view->renderSection('subject'));
-		$html = trim($view->renderSection('html'));
-		$plain = trim($view->renderSection('plain', [], true));
-
-		if($embedImages) $html = $this->attachHtmlInlineImages($html);
-
-		$message->setSubject($subject);
-		if ($html) $message->addPart($html,'text/html','utf-8');
-		if ($plain) $message->addPart($plain,'text/plain','utf-8');
-	}
-
-	/**
-	 * Sends a message
-	 *
-	 * @param \Neos\SwiftMailer\Message $message
-	 */
-	protected function sendMail(\Neos\SwiftMailer\Message $message) {
-		$message->send();
-	}
-
-	/**
-	 * Sends test email to check the configuration
-	 *
-	 * @param string|array $to
-	 * @return void
-	 */
-	public function sendTestMail($to) {
-
-		$mail = $this->createMessage();
-
-		$view = $this->createStandaloneView('FormatD.Mailer/Private/Templates/Notifications/TestMail.html');
-		$view->assign('teststring', 'HelloWorld');
-
-		$this->setMailContentFromStandaloneView($mail, $view, true);
-		$mail->setTo($to);
-
-		$this->sendMail($mail);
-	}
 }
-
-?>

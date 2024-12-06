@@ -1,0 +1,23 @@
+FormatD.Mailer:AssetAttachment:
+  superTypes:
+    Neos.Form.Builder:FormElement: true
+  ui:
+    label: 'Attachment'
+    icon: 'icon-paperclip'
+    position: 90
+    inspector:
+      groups:
+        'formElement':
+          icon: 'icon-paperclip'
+    group: 'form.custom'
+  properties:
+    asset:
+      type: 'Neos\Media\Domain\Model\Asset'
+      ui:
+        label: 'Asset'
+        reloadIfChanged: true
+        inspector:
+          group: 'formElement'
+          editorOptions:
+            constraints:
+              mediaTypes: [ 'application/zip', 'application/pdf', 'application/msword', 'application/msexcel', 'application/mspowerpoint', 'application/powerpoint', 'application/vnd.ms-powerpoint', 'application/x-mspowerpoint', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.oasis.opendocument.presentation', 'application/vnd.openxmlformats-officedocument.presentationml.presentation' ]
