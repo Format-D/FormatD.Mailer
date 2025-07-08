@@ -96,5 +96,10 @@
             "Neos.Flow-20190515215000",
             "Neos.NodeTypes-20190917101945"
         ]
+    },
+    "config": {
+        "allow-plugins": {
+            "neos/composer-plugin": true
+        }
     }
 }

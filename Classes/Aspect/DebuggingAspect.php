@@ -6,92 +6,43 @@ namespace FormatD\Mailer\Aspect;
  * This file is part of the FormatD.Mailer package.
  */
 
+use FormatD\Mailer\Transport\InterceptingTransport;
 use Neos\Flow\Annotations as Flow;
 use Neos\Flow\Aop\JoinPointInterface;
-use Symfony\Component\Mime\Email;
-use Symfony\Component\Mime\RawMessage;
+use Symfony\Component\Mailer\Mailer;
+use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mailer\Transport;
 
 /**
  * @Flow\Aspect
- * @Flow\Introduce("class(Symfony\Component\Mime\Email)", traitName="FormatD\Mailer\Traits\InterceptionTrait")
  */
 class DebuggingAspect
 {
-    /**
-     * @Flow\InjectConfiguration(type="Settings", package="FormatD.Mailer")
-     * @var array
-     */
-    protected $settings;
+	#[Flow\InjectConfiguration(package: 'FormatD.Mailer', type: 'Settings')]
+	protected array $settings;
 
-    /**
-     * Intercept all emails or add bcc according to package configuration
-     *
-     * @param JoinPointInterface $joinPoint
-     * @Flow\Before("method(Symfony\Component\Mailer->send())")
-     * @return void
-     */
-    public function interceptEmails(JoinPointInterface $joinPoint)
-    {
-        if ($this->settings['interceptAll']['active'] || $this->settings['bccAll']['active']) {
-            /**
-             * @var RawMessage $message
-             */
-            $message = $joinPoint->getProxy();
+	#[Flow\InjectConfiguration(path: 'mailer', package: 'Neos.SymfonyMailer')]
+	protected array $symfonyMailerSettings;
 
-            if (!($message instanceof Email) || !method_exists($message, 'isIntercepted') || !method_exists($message, 'setIntercepted')) {
-                return;
-            }
+	protected ?Mailer $mailer = null;
 
-            if ($this->settings['interceptAll']['active']) {
-                $oldTo = $message->getTo();
-                $oldCc = $message->getCc();
-                $oldBcc = $message->getBcc();
+	/**
+	 * @Flow\Around("method(Neos\SymfonyMailer\Service\MailerService->getMailer())")
+	 */
+	public function decorateMailer(JoinPointInterface $joinPoint): MailerInterface
+	{
+		if (!($this->settings['interceptAll']['active'] ?? false) && !($this->settings['bccAll']['active'] ?? false)) {
+			/** @var MailerInterface $symfonyMailerInstance */
+			$symfonyMailerInstance = $joinPoint->getAdviceChain()->proceed($joinPoint);
+			return $symfonyMailerInstance;
+		}
 
-                foreach ($this->settings['interceptAll']['noInterceptPatterns'] as $pattern) {
-                    if (preg_match($pattern, reset($oldTo)->getAddress())) {
-                        // let the mail through but clean all cc and bcc fields
-                        $message->getHeaders()->remove('Cc');
-                        $message->getHeaders()->remove('Bcc');
-                        return;
-                    }
-                }
+		if ($this->mailer === null) {
+			$actualTransport = Transport::fromDsn($this->symfonyMailerSettings['dsn']);
+			$interceptingTransport = new InterceptingTransport($actualTransport);
+			$this->mailer = new Mailer($interceptingTransport);
+		}
 
-                // stop if this aspect is executed twice (happens if QueueAdaptor is installed)
-                if ($message->isIntercepted()) {
-                    return;
-                }
-
-                $interceptedRecipients = [
-                    reset($oldTo)->getAddress(),
-                    $oldCc ? 'CC: ' . reset($oldCc)->getAddress() : '',
-                    $oldBcc ? 'BCC: ' . reset($oldBcc)->getAddress() : '',
-                ];
-
-                $interceptedRecipients = implode(' ', array_filter($interceptedRecipients));
-                $message->subject('[intercepted ' . $interceptedRecipients . '] ' . $message->getSubject());
-                $message->setIntercepted(true);
-
-                $message->getHeaders()->remove('Cc');
-                $message->getHeaders()->remove('Bcc');
-
-                $first = true;
-                foreach ($this->settings['interceptAll']['recipients'] as $email) {
-                    if ($first) {
-                        $message->to($email);
-                    } else {
-                        $message->addCc($email);
-                    }
-                    $first = false;
-                }
-            }
-
-            if ($this->settings['bccAll']['active']) {
-                foreach ($this->settings['bccAll']['recipients'] as $email) {
-                    $message->addBcc($email);
-                }
-            }
-        }
-    }
+		return $this->mailer;
+	}
 }
-
-?>
