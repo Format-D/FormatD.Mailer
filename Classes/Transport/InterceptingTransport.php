@@ -20,7 +20,6 @@ class InterceptingTransport implements TransportInterface
 
 	public function send(RawMessage $message, ?Envelope $envelope = null): ?SentMessage
 	{
-		// Prevent interception when mail has already been intercepted before
 		if ($message instanceof Email) {
 			$message = $this->interceptMessage($message);
 		}

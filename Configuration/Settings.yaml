@@ -1,5 +1,16 @@
+Neos:
+  SymfonyMailer:
+    mailer:
+      dsn: 'fd-mailer'
+
 FormatD:
   Mailer:
+    smtpTransport:
+      host: ''
+      encryption: ''
+      port: ''
+      username: ''
+      password: ''
     localEmbed: false
     attachEmbeddedImages: false
     interceptAll:
