@@ -6,8 +6,8 @@ Neos:
 FormatD:
   Mailer:
     smtpTransport:
-      host: ''
-      encryption: ''
+      host: '%env:SMTP_HOST%'
+      encryption: false
       port: ''
       username: ''
       password: ''
