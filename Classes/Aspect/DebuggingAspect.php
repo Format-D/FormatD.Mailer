@@ -1,85 +1,57 @@
 <?php
+
 namespace FormatD\Mailer\Aspect;
 
-/*                                                                        *
- * This script belongs to the Flow package "FormatD.Mailer".              *
- *                                                                        */
+/*
+ * This file is part of the FormatD.Mailer package.
+ */
 
+use FormatD\Mailer\Transport\FdMailerTransport;
+use FormatD\Mailer\Transport\InterceptingTransport;
 use Neos\Flow\Annotations as Flow;
-
+use Neos\Flow\Aop\JoinPointInterface;
+use Symfony\Component\Mailer\Mailer;
+use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mailer\Transport;
 
 /**
  * @Flow\Aspect
- * @Flow\Introduce("class(Neos\SwiftMailer\Message)", traitName="FormatD\Mailer\Traits\InterceptionTrait")
  */
-class DebuggingAspect {
+class DebuggingAspect
+{
+    #[Flow\InjectConfiguration(package: 'FormatD.Mailer', type: 'Settings')]
+    protected array $settings;
 
-	/**
-	 * @Flow\InjectConfiguration(type="Settings", package="FormatD.Mailer")
-	 * @var array
-	 */
-	protected $settings;
+    #[Flow\InjectConfiguration(path: 'mailer', package: 'Neos.SymfonyMailer')]
+    protected array $symfonyMailerSettings;
 
-	/**
-	 * Intercept all emails or add bcc according to package configuration
-	 *
-	 * @param \Neos\Flow\Aop\JoinPointInterface $joinPoint
-	 * @Flow\Before("method(Neos\SwiftMailer\Message->send())")
-	 * @return void
-	 */
-	public function interceptEmails(\Neos\Flow\Aop\JoinPointInterface $joinPoint) {
+    protected ?Mailer $mailer = null;
 
-		if ($this->settings['interceptAll']['active'] || $this->settings['bccAll']['active']) {
-			/**
-			 * @var \Neos\SwiftMailer\Message $message
-			 */
-			$message = $joinPoint->getProxy();
-
-			if ($this->settings['interceptAll']['active']) {
-
-				$oldTo = $message->getTo();
-				$oldCc = $message->getCc();
-				$oldBcc = $message->getBcc();
-
-				foreach ($this->settings['interceptAll']['noInterceptPatterns'] as $pattern) {
-					if (preg_match($pattern, key($oldTo))) {
-						// let the mail through but clean all cc and bcc fields
-						$message->setCc(array());
-						$message->setBcc(array());
-						return;
-					}
-				}
-
-				// stop if this aspect is executed twice (happens if QueueAdaptor is installed)
-				if ($message->isIntercepted()) {
-					return;
-				}
-
-				$interceptedRecipients = key($oldTo) . ($oldCc ? ' CC: ' . key($oldCc) : '') . ($oldBcc ? ' BCC: ' . key($oldBcc) : '');
-				$message->setSubject('[intercepted '.$interceptedRecipients.'] '.$message->getSubject());
-				$message->setIntercepted(true);
-
-				$message->setCc(array());
-				$message->setBcc(array());
-
-				$first = true;
-				foreach ($this->settings['interceptAll']['recipients'] as $email) {
-					if ($first) {
-						$message->setTo($email);
-					} else {
-						$message->addCc($email);
-					}
-					$first = false;
-				}
-			}
-
-			if ($this->settings['bccAll']['active']) {
-				foreach ($this->settings['bccAll']['recipients'] as $email) {
-					$message->addBcc($email);
-				}
-			}
+    /**
+     * @Flow\Around("method(Neos\SymfonyMailer\Service\MailerService->getMailer())")
+     */
+    public function decorateMailer(JoinPointInterface $joinPoint): MailerInterface
+    {
+        if (!($this->settings['interceptAll']['active'] ?? false) && !($this->settings['bccAll']['active'] ?? false)) {
+            if ($this->mailer === null && ($this->symfonyMailerSettings['dsn'] ?? null) === 'fd-mailer') {
+                $this->mailer = new Mailer(new FdMailerTransport());
+            } else {
+                $this->mailer = $joinPoint->getAdviceChain()->proceed($joinPoint);
+            }
+            return $this->mailer;
 		}
-	}
-}
 
-?>
+        if ($this->mailer === null) {
+            $dsn = $this->symfonyMailerSettings['dsn'];
+            if ($dsn === 'fd-mailer') {
+                $actualTransport = new FdMailerTransport();
+            } else {
+                $actualTransport = Transport::fromDsn($this->symfonyMailerSettings['dsn']);
+            }
+            $interceptingTransport = new InterceptingTransport($actualTransport);
+            $this->mailer = new Mailer($interceptingTransport);
+        }
+
+        return $this->mailer;
+    }
+}

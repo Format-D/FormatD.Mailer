@@ -1,13 +1,15 @@
 {
     "name": "formatd/mailer",
-    "description": "Wrapper for Swiftmailer in Neos Flow Projects",
+    "description": "Wrapper for SymfonyMailer in Neos Flow Projects",
     "type": "neos-package",
     "license": "MIT",
     "require": {
-        "neos/flow": "^6.0 || ^7.0 || ^8.0",
-        "neos/swiftmailer": "^7.3"
+        "php": "^8.1",
+        "neos/flow": "^8.3",
+        "neos/symfonymailer": "*",
+        "neos/fluid-adaptor": "^8.3"
     },
-    "suggest": [],
+    "suggest": {},
     "autoload": {
         "psr-4": {
             "FormatD\\Mailer\\": "Classes/"
@@ -94,5 +96,10 @@
             "Neos.Flow-20190515215000",
             "Neos.NodeTypes-20190917101945"
         ]
+    },
+    "config": {
+        "allow-plugins": {
+            "neos/composer-plugin": true
+        }
     }
 }
