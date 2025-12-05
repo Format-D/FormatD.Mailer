@@ -23,11 +23,11 @@ Releases und compatibility:
 
 | Package-Version | Neos Flow Version | `neos/form` Version |
 |-----------------|-------------------|---------------------|
-| 2.0.0           | >= 8.x            | >= 6.0.0            |
+| 2.0.x           | >= 8.x            | >= 6.0.0            |
 | 1.1.x           | >= 6.x            | < 6.0.0             |
 | 1.0.x           | 4.x - 5.x         | < 6.0.0             |
 
-## Using the service in you own plugins to use fluid templates for mails
+## Using the service in your own plugins to use fluid templates for mails
 
 Configure default from address:
 
@@ -88,6 +88,9 @@ Use the special DSN `fd-mailer` in the SymfonyMailer configuration. This transpo
 given under `FormatD.Mailer.smtpTransport` to build the actual DSN and actual SmtpTransport object. `host` is mandatory,
 all other parts are optional.
 
+For special cases the automatic DSN construction can be omitted by passing the DSN directly at
+`Neos.SymfonyMailer.mailer.dsn`.
+
 ```
 Neos:
   SymfonyMailer:
@@ -97,9 +100,28 @@ Neos:
 FormatD:
   Mailer:
     smtpTransport:
-      host: ''
-      encryption: ''
-      port: ''
-      username: ''
-      password: ''
+      host: '%env:SMTP_HOST%'
+      encryption: '%env:SMTP_ENCRYPTION%'
+      port: '%env:SMTP_PORT%'
+      username: '%env:SMTP_USERNAME%'
+      password: '%env:SMTP_PASSWORD%'
+       
+      # Optional: Query params appended to the DSN, use with caution and only when necessary
+      options:
+        # Do not verify server TLS certificate
+        verify_peer: 0
+        # Do not try `STARTTLS` at all
+        auto_tls: 'false'
+        # Use `STARTTLS` even when not announced in server capabilities
+        require_tls: 'true'
+        
 ```
+
+The `encryption` param is cast to boolean, with `'false', '0', 0` being interpreted falsy as well. If true, the scheme
+will be `smtps`, thus the Symfony SMTP transport tries to establish a TLS encrypted channel right away. If
+`encryption` is false, then the transport will still try to upgrade the connection via `STARTTLS`, when that is
+announced by the server!
+
+The `options` config is completely optional and could be omitted to use SymfonyMailer's sane defaults. It can be used to
+define query parameters appended to the DSN, as described in
+the [SymfonyMailer documentation](https://symfony.com/doc/current/mailer.html).

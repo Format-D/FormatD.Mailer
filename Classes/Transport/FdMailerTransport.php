@@ -8,7 +8,6 @@ use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Symfony\Component\Mailer\SentMessage;
 use Symfony\Component\Mailer\Transport;
 use Symfony\Component\Mailer\Transport\TransportInterface;
-use Symfony\Component\Mime\Email;
 use Symfony\Component\Mime\RawMessage;
 
 class FdMailerTransport implements TransportInterface
@@ -35,7 +34,7 @@ class FdMailerTransport implements TransportInterface
 	protected function getActualTransportDsn(): string
 	{
 		$config = $this->settings['smtpTransport'] ?? null;
-		if ($config === null) {
+		if (!is_array($config)) {
 			throw new \Exception('Missing FormatD.Mailer settings.');
 		}
 
@@ -43,7 +42,9 @@ class FdMailerTransport implements TransportInterface
 			throw new \Exception('Missing configuration: FormatD.Mailer.smtpTransport.host');
 		}
 
-		$scheme = ($config['encryption'] ?? false) ? 'smtps' : 'smtp';
+		$useTlsChannel = $config['encryption'] ?? null;
+		$useTlsChannel = (bool)($useTlsChannel === 'false' || (string)$useTlsChannel === '0' ? false : $useTlsChannel);
+		$scheme = $useTlsChannel ? 'smtps' : 'smtp';
 
 		$credentials = '';
 		if (($config['username'] ?? null) && ($config['password'] ?? null)) {
@@ -53,7 +54,12 @@ class FdMailerTransport implements TransportInterface
 		$host = $config['host'];
 		$port = ($config['port'] ?? null) ? ':' . $config['port'] : '';
 
-		return $scheme . '://' . $credentials . $host . $port;
+		$query = '';
+		if (is_array($config['options'] ?? null)) {
+			$query = http_build_query($config['options'], '', '&');
+		}
+
+		return $scheme . '://' . $credentials . $host . $port . ($query ? '?' . $query : '');
 	}
 
 	public function __toString(): string
