@@ -43,7 +43,7 @@ class FdMailerTransport implements TransportInterface
 		}
 
 		$useTlsChannel = $config['encryption'] ?? null;
-		$useTlsChannel = (bool)($useTlsChannel === 'false' || (string)$useTlsChannel === '0' ? false : $useTlsChannel);
+		$useTlsChannel = (bool)($useTlsChannel === 'false' ? false : $useTlsChannel);
 		$scheme = $useTlsChannel ? 'smtps' : 'smtp';
 
 		$credentials = '';

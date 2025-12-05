@@ -117,8 +117,8 @@ FormatD:
         
 ```
 
-The `encryption` param is cast to boolean, with `'false', '0', 0` being interpreted falsy as well. If true, the scheme
-will be `smtps`, thus the Symfony SMTP transport tries to establish a TLS encrypted channel right away. If
+The `encryption` param is cast to boolean, with the `'false'` string being interpreted falsy as well. If true, the
+scheme will be `smtps`, thus the Symfony SMTP transport tries to establish a TLS encrypted channel right away. If
 `encryption` is false, then the transport will still try to upgrade the connection via `STARTTLS`, when that is
 announced by the server!
 
