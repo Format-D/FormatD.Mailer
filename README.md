@@ -109,7 +109,7 @@ FormatD:
       # Optional: Query params appended to the DSN, use with caution and only when necessary
       options:
         # Do not verify server TLS certificate
-        verify_peer: 0
+        verify_peer: 1
         # Do not try `STARTTLS` at all
         auto_tls: 'false'
         # Use `STARTTLS` even when not announced in server capabilities
