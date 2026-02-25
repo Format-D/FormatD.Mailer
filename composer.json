@@ -10,6 +10,9 @@
         "neos/fluid-adaptor": "^8.3"
     },
     "suggest": {},
+    "conflict": {
+        "neos/swiftmailer": "*"
+    },
     "autoload": {
         "psr-4": {
             "FormatD\\Mailer\\": "Classes/"
