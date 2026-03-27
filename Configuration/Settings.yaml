@@ -11,6 +11,7 @@ FormatD:
       port: ''
       username: ''
       password: ''
+      options: {}
     localEmbed: false
     attachEmbeddedImages: false
     interceptAll:
@@ -23,3 +24,11 @@ FormatD:
     defaultFrom:
       address: 'example@example.com'
       name: 'Example'
+    defaultTo:
+      address: 'example@example.com'
+      name: 'Example To'
+    site:
+      siteNodeName: ''
+      contentRepositoryId: 'default'
+    templateNodes:
+      test: ''

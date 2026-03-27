@@ -1,0 +1,10 @@
+include: Overrides/**/*
+include: Fragments/**/*
+include: nodetypes://FormatD.Mailer/**/*.fusion
+
+root {
+  emailTemplates {
+    condition = ${q(documentNode).is('[instanceof FormatD.Mailer:Document.Email]')}
+    renderer = FormatD.Mailer:Document.Email
+  }
+}

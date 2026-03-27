@@ -7,9 +7,12 @@
         "php": "^8.1",
         "neos/flow": "^8.3",
         "neos/symfonymailer": "*",
-        "neos/fluid-adaptor": "^8.3"
+        "neos/fluid-adaptor": "^8.3",
+        "guzzlehttp/guzzle": "^6.0 || ^7.0"
     },
-    "suggest": {},
+    "suggest": {
+        "neos/form": "Required for EmailFinisher and AssetAttachment form elements"
+    },
     "conflict": {
         "neos/swiftmailer": "*"
     },
