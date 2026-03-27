@@ -23,8 +23,8 @@ Releases und compatibility:
 
 | Package-Version | Neos Flow Version | `neos/form` Version |
 |-----------------|-------------------|---------------------|
-| 2.0.x           | >= 8.x            | >= 6.0.0            |
-| 1.1.x           | >= 6.x            | < 6.0.0             |
+| 2.0.x           | 8.x               | >= 6.0.0            |
+| 1.1.x           | >= 6.x <= 8.x     | < 6.0.0             |
 | 1.0.x           | 4.x - 5.x         | < 6.0.0             |
 
 ## Using the service in your own plugins to use fluid templates for mails
