@@ -11,6 +11,7 @@ prototype(FormatD.Mailer:Document.Email) < prototype(Neos.Neos:Page) {
 		openGraphMetaTags >
 		facebookMetaTags >
 		structuredData >
+		formatDComponentLoaderRegistry >
 
 		email = FormatD.Mailer:Fragment.Head
 	}
