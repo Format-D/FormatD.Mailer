@@ -1,0 +1,13 @@
+Neos:
+  Form:
+    presets:
+      default:
+        formElementTypes:
+          'FormatD.Mailer:AssetAttachment':
+            superTypes:
+              'Neos.Form:FormElement': true
+            implementationClassName: FormatD\Mailer\Form\FormElements\AssetAttachment
+        finisherPresets:
+          'FormatD.Mailer:EmailFinisher':
+            implementationClassName: FormatD\Mailer\Form\Finishers\EmailFinisher
+            options: {  }

@@ -5,11 +5,14 @@
     "license": "MIT",
     "require": {
         "php": "^8.1",
-        "neos/flow": "^8.3",
+        "neos/neos": "^9.0",
         "neos/symfonymailer": "*",
-        "neos/fluid-adaptor": "^8.3"
+        "neos/fluid-adaptor": "^9.0",
+        "guzzlehttp/guzzle": "^6.0 || ^7.0"
     },
-    "suggest": {},
+    "suggest": {
+        "neos/form": "Required for EmailFinisher and AssetAttachment form elements"
+    },
     "conflict": {
         "neos/swiftmailer": "*"
     },

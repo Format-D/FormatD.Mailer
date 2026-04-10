@@ -8,17 +8,24 @@ namespace FormatD\Mailer\Service;
 
 use Neos\Flow\Annotations as Flow;
 use Neos\Flow\Configuration\ConfigurationManager;
+use Neos\Flow\Core\Bootstrap;
 use Neos\Flow\ObjectManagement\ObjectManagerInterface;
 use Neos\FluidAdaptor\View\Exception\InvalidSectionException;
 use Neos\FluidAdaptor\View\StandaloneView as FluidStandaloneView;
 use Neos\SymfonyMailer\Exception\InvalidMailerConfigurationException;
 use Neos\SymfonyMailer\Service\MailerService;
+use Neos\ContentRepository\Core\SharedModel\Node\NodeAggregateId;
+use Neos\ContentRepository\Core\Projection\ContentGraph\Node;
+use Neos\ContentRepository\Core\Projection\ContentGraph\VisibilityConstraints;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\ClientException;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Mime\Message;
 use Symfony\Component\Mime\Part\DataPart;
 use Symfony\Component\Mime\Part\File;
+use FormatD\Mailer\Factories\MailFactory;
 
 /**
  * A Abstract Base MailService to extend in custom projects
@@ -66,12 +73,35 @@ abstract class AbstractMailerService
     #[Flow\Inject]
     protected MailerService $coreMailerService;
 
+    #[Flow\Inject]
+    protected ContentRepositoryService $contentRepositoryService;
+
+    #[Flow\Inject]
+    protected MailFactory $mailFactory;
+
+    #[Flow\Inject(name: "FormatD.Mailer:MailerLogger")]
+    protected $mailerLogger;
+
+    protected $client;
+
     /**
      * Get Configuration
      */
     public function initializeObject()
     {
         $this->defaultFrom = array($this->mailSettings['defaultFrom']['address'] => $this->mailSettings['defaultFrom']['name']);
+
+        $clientOptions = [];
+        $clientOptions = $this->setSslVerification($clientOptions);
+        $this->client = new Client($clientOptions);
+    }
+
+    protected function setSslVerification(array $clientOptions): array
+    {
+        $flowContext = Bootstrap::getEnvironmentConfigurationSetting('FLOW_CONTEXT');
+        $clientOptions['verify'] = !str_contains($flowContext, 'Development');
+
+        return $clientOptions;
     }
 
     /**
@@ -185,7 +215,7 @@ abstract class AbstractMailerService
     }
 
     /**
-     * Sends a message
+     * Sends a message via the core mailer service (intercepted by AOP aspect)
      *
      * @param Email $message
      * @throws InvalidMailerConfigurationException|TransportExceptionInterface
@@ -196,7 +226,89 @@ abstract class AbstractMailerService
     }
 
     /**
-     * Sends test email to check the configuration
+     * Convenience method to send an email with individual parameters.
+     * Uses MailFactory to create the email and routes through sendMail()
+     * which is intercepted by the AOP DebuggingAspect.
+     *
+     * @param string $subject
+     * @param Address[]|Address|string $to
+     * @param Address|string|null $from
+     * @param string|null $text
+     * @param string|null $html
+     * @param Address|string|null $replyTo
+     * @param Address|string|null $cc
+     * @param Address|string|null $bcc
+     * @throws InvalidMailerConfigurationException|TransportExceptionInterface
+     */
+    public function send($subject, $to, $from = null, $text = null, $html = null, $replyTo = null, $cc = null, $bcc = null)
+    {
+        if ($from === null) {
+            reset($this->defaultFrom);
+            $from = new Address(key($this->defaultFrom), current($this->defaultFrom));
+        }
+
+        $mail = $this->mailFactory->createMail(
+            $subject,
+            $to,
+            $from,
+            $text,
+            $html,
+            $replyTo,
+            $cc,
+            $bcc
+        );
+
+        $this->sendMail($mail);
+    }
+
+    /**
+     * Get a Content Repository node by its aggregate ID
+     */
+    public function getNodeById(string $id): Node
+    {
+        $contentRepository = $this->contentRepositoryService->getContentRepository();
+        $contentGraph = $this->contentRepositoryService->getContentGraph($contentRepository);
+
+        $generalizations = $contentRepository->getVariationGraph()->getRootGeneralizations();
+        $dimensionSpacePoint = reset($generalizations);
+
+        $subgraph = $contentGraph->getSubgraph(
+            $dimensionSpacePoint,
+            VisibilityConstraints::withoutRestrictions(),
+        );
+
+        return $subgraph->findNodeById(NodeAggregateId::fromString($id));
+    }
+
+    /**
+     * Render a Content Repository email node to HTML via HTTP request
+     */
+    public function getHtml(Node $emailNode): string
+    {
+        $emailUri = $this->contentRepositoryService->uriForNode($emailNode);
+
+        try {
+            $response = $this->client->request('GET', $emailUri);
+        } catch (ClientException $e) {
+            $this->mailerLogger->error("MAILER_ERROR :: " . $e->getResponse()->getBody()->getContents());
+            throw $e;
+        }
+
+        if ($response->getStatusCode() !== 200) {
+            $this->mailerLogger->error("MAILER_ERROR :: " . $response->getStatusCode());
+        }
+
+        $html = $response->getBody()->getContents();
+
+        if ($this->mailSettings['attachEmbeddedImages']) {
+            $html = $this->attachHtmlInlineImages($html);
+        }
+
+        return $html;
+    }
+
+    /**
+     * Sends test email using Fluid template to check the configuration
      *
      * @param string|array $to
      * @return void
@@ -213,5 +325,28 @@ abstract class AbstractMailerService
         $mail->to($to);
 
         $this->sendMail($mail);
+    }
+
+    /**
+     * Sends test email using a Content Repository template node
+     *
+     * @param string|array $to
+     * @return void
+     * @throws InvalidMailerConfigurationException|TransportExceptionInterface
+     */
+    public function sendTestMailFromContentRepository($to)
+    {
+        $templateNodeId = $this->mailSettings['templateNodes']['test'] ?? '';
+        if (empty($templateNodeId)) {
+            throw new \RuntimeException('No test template node configured in FormatD.Mailer.templateNodes.test', 1714142100);
+        }
+
+        $this->send(
+            'Format D Mailer // Test E-Mail',
+            $to,
+            null,
+            'Hello guys, this is a test e-mail',
+            $this->getHtml($this->getNodeById($templateNodeId))
+        );
     }
 }
