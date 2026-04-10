@@ -1,5 +1,4 @@
-include: Overrides/**/*
-include: Fragments/**/*
+include: Components/**/*
 include: nodetypes://FormatD.Mailer/**/*.fusion
 
 root {
