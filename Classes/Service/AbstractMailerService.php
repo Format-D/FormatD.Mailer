@@ -182,7 +182,7 @@ abstract class AbstractMailerService
         if ($this->mailSettings['attachEmbeddedImages']) {
             $part = new DataPart(new File(urldecode($path)));
             $this->processedMessage->addPart($part->asInline());
-            $path = 'cid' . $part->getContentId();
+            $path = 'cid:' . $part->getContentId();
         }
 
         return sprintf('%s%s%s', $imgTagStart, $path, $imgTagEnd);
