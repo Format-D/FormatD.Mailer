@@ -10,6 +10,7 @@ use FormatD\Mailer\Transport\FdMailerTransport;
 use FormatD\Mailer\Transport\InterceptingTransport;
 use Neos\Flow\Annotations as Flow;
 use Neos\Flow\Aop\JoinPointInterface;
+use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\Mailer\Mailer;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mailer\Transport;
@@ -62,9 +63,10 @@ class MailerTransportAspect
     protected function createTransport(string $dsn): \Symfony\Component\Mailer\Transport\TransportInterface
     {
         $factories = iterator_to_array(Transport::getDefaultFactories());
+        $httpClient = HttpClient::create();
         foreach ($this->additionalTransportFactories as $factoryClass) {
             if (class_exists($factoryClass)) {
-                $factories[] = new $factoryClass();
+                $factories[] = new $factoryClass(null, $httpClient);
             }
         }
 
