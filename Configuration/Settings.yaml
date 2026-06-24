@@ -2,6 +2,7 @@ Neos:
   SymfonyMailer:
     mailer:
       dsn: 'fd-mailer'
+      additionalTransportFactories: []
 
 FormatD:
   Mailer:
