@@ -17,13 +17,16 @@ use Symfony\Component\Mailer\Transport;
 /**
  * @Flow\Aspect
  */
-class DebuggingAspect
+class MailerTransportAspect
 {
     #[Flow\InjectConfiguration(package: 'FormatD.Mailer', type: 'Settings')]
     protected array $settings;
 
     #[Flow\InjectConfiguration(path: 'mailer', package: 'Neos.SymfonyMailer')]
     protected array $symfonyMailerSettings;
+
+    #[Flow\InjectConfiguration(path: 'mailer.additionalTransportFactories', package: 'FormatD.Mailer')]
+    protected array $additionalTransportFactories = [];
 
     protected ?Mailer $mailer = null;
 
@@ -33,25 +36,38 @@ class DebuggingAspect
     public function decorateMailer(JoinPointInterface $joinPoint): MailerInterface
     {
         if (!($this->settings['interceptAll']['active'] ?? false) && !($this->settings['bccAll']['active'] ?? false)) {
-            if ($this->mailer === null && ($this->symfonyMailerSettings['dsn'] ?? null) === 'fd-mailer') {
-                $this->mailer = new Mailer(new FdMailerTransport());
-            } else {
-                $this->mailer = $joinPoint->getAdviceChain()->proceed($joinPoint);
+            if ($this->mailer === null) {
+                $dsn = $this->symfonyMailerSettings['dsn'] ?? null;
+                $this->mailer = $dsn === 'fd-mailer'
+                    ? new Mailer(new FdMailerTransport())
+                    : new Mailer($this->createTransport((string)$dsn));
             }
             return $this->mailer;
-		}
+        }
 
         if ($this->mailer === null) {
             $dsn = $this->symfonyMailerSettings['dsn'];
             if ($dsn === 'fd-mailer') {
                 $actualTransport = new FdMailerTransport();
             } else {
-                $actualTransport = Transport::fromDsn($this->symfonyMailerSettings['dsn']);
+                $actualTransport = $this->createTransport($dsn);
             }
             $interceptingTransport = new InterceptingTransport($actualTransport);
             $this->mailer = new Mailer($interceptingTransport);
         }
 
         return $this->mailer;
+    }
+
+    protected function createTransport(string $dsn): \Symfony\Component\Mailer\Transport\TransportInterface
+    {
+        $factories = iterator_to_array(Transport::getDefaultFactories());
+        foreach ($this->additionalTransportFactories as $factoryClass) {
+            if (class_exists($factoryClass)) {
+                $factories[] = new $factoryClass();
+            }
+        }
+
+        return (new Transport($factories))->fromString($dsn);
     }
 }
