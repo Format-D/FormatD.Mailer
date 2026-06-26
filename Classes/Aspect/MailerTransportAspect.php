@@ -62,8 +62,8 @@ class MailerTransportAspect
 
     protected function createTransport(string $dsn): \Symfony\Component\Mailer\Transport\TransportInterface
     {
-        $factories = iterator_to_array(Transport::getDefaultFactories());
         $httpClient = HttpClient::create();
+        $factories = iterator_to_array(Transport::getDefaultFactories(client: $httpClient));
         foreach ($this->additionalTransportFactories as $factoryClass) {
             if (class_exists($factoryClass)) {
                 $factories[] = new $factoryClass(null, $httpClient);
