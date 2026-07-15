@@ -107,7 +107,7 @@ abstract class AbstractMailerService
     /**
      * Creates new email message object and stores it as processedMessage
      *
-     * @return Message
+     * @return Email
      */
     public function createMessage()
     {
