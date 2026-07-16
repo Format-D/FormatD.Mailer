@@ -33,3 +33,5 @@ FormatD:
       contentRepositoryId: 'default'
     templateNodes:
       test: ''
+    logging:
+      emailDispatch: true
