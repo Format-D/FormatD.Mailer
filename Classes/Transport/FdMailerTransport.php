@@ -12,11 +12,8 @@ use Symfony\Component\Mailer\Transport\TransportInterface;
 use Symfony\Component\Mime\RawMessage;
 use Symfony\Component\Mime\Email;
 
-class FdMailerTransport implements TransportInterface
+class FdMailerTransport extends AbstractTransport
 {
-	#[Flow\InjectConfiguration(package: 'FormatD.Mailer', type: 'Settings')]
-	protected array $settings;
-
 	protected ?TransportInterface $actualTransport = null;
 
 	#[Flow\Inject(name: "FormatD.Mailer:MailerLogger", lazy: false)]
@@ -77,6 +74,9 @@ class FdMailerTransport implements TransportInterface
 		return 'fd-mailer';
 	}
 
+	/**
+	 * @throws \JsonException
+	 */
 	protected function logEmailDispatch(?SentMessage $sentMessage, RawMessage $message): void
 	{
 		$isLoggable = $sentMessage instanceof SentMessage
@@ -87,12 +87,22 @@ class FdMailerTransport implements TransportInterface
 			return;
 		}
 
-		$subject = $message->getSubject();
+		$interceptDataHeaderName = $this->settings['interceptAll']['interceptDataHeaderName'] ?? self::DEFAULT_INTERCEPT_DATA_HEADER_NAME;
+		$isIntercepted = $message->getHeaders()->has($interceptDataHeaderName);
+		if ($isIntercepted) {
+			$interceptMetaData = json_decode($message->getHeaders()->get($interceptDataHeaderName)->getBody(), true, 16, JSON_THROW_ON_ERROR);
+		}
+
+		$subject = !$isIntercepted ? $message->getSubject() : $interceptMetaData['subject'];
 		if (mb_strlen($subject) > 50) {
 			$subject = mb_substr($subject, 0, 50) . ' …';
 		}
-		$from = implode(', ', array_map(fn($a) => $a->toString(), $message->getFrom()));
-		$to = implode(', ', array_map(fn($a) => $a->toString(), $message->getTo()));
+		$from = !$isIntercepted
+			? implode(', ', array_map(fn($a) => $a->toString(), $message->getFrom()))
+			: implode(', ', $interceptMetaData['from']);
+		$to = !$isIntercepted
+			? implode(', ', array_map(fn($a) => $a->toString(), $message->getTo()))
+			: implode(', ', $interceptMetaData['to']);
 
 		$this->logger->info(vsprintf('Sent email to %s (from %s) with subject "%s"', [$to, $from, $subject]));
 	}
