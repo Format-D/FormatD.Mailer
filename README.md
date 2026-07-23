@@ -41,9 +41,9 @@ FormatD:
 
 Extend AbstractMailerService and add methods as needed following the example of sendTestMail().
 
-## intersept all mails in a dev environment
+## intercept all mails in a dev environment
 
-Configure swiftmailer to intersept all mails send by your neos installation (not only by the service).
+Configure the mailer to intercept all mails send by your neos installation (not only by the service).
 
 This is an example which intercepts all mails and redirects them to example@example.com and secondexample@example.com:
 
@@ -56,6 +56,30 @@ FormatD:
     bccAll:
       active: false
       recipients: []
+```
+
+## Logging email dispatch
+
+Every sent email (to, from, subject) is logged via its own logger channel `FormatD.Mailer:MailerLogger`, writing to
+`Data/Logs/Mailer.log`. This can be disabled:
+
+```
+FormatD:
+  Mailer:
+    logging:
+      emailDispatch: false
+```
+
+If a mail was intercepted (see `interceptAll`/`bccAll` above), the log entry still shows the *original* recipient,
+sender and subject — not the intercepted ones — since those are the actually relevant values for debugging. This is
+achieved by stashing the original data in an `X-Intercept-Metadata` mail header before rewriting the message. The
+header name can be changed if it collides with something:
+
+```
+FormatD:
+  Mailer:
+    interceptAll:
+      interceptDataHeaderName: 'X-Intercept-Metadata'
 ```
 
 ## Handling Embedded Images

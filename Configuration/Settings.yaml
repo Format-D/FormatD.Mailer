@@ -17,9 +17,13 @@ FormatD:
       active: false
       recipients: []
       noInterceptPatterns: []
+      interceptDataHeaderName: 'X-Intercept-Metadata'
+
     bccAll:
       active: false
       recipients: []
     defaultFrom:
       address: 'example@example.com'
       name: 'Example'
+    logging:
+      emailDispatch: true
