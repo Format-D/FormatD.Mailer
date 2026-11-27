@@ -27,7 +27,7 @@ class MailerTransportAspect
     protected array $symfonyMailerSettings;
 
     #[Flow\InjectConfiguration(path: 'mailer.additionalTransportFactories', package: 'FormatD.Mailer')]
-    protected array $additionalTransportFactories = [];
+    protected ?array $additionalTransportFactories = [];
 
     protected ?Mailer $mailer = null;
 
@@ -62,9 +62,10 @@ class MailerTransportAspect
 
     protected function createTransport(string $dsn): \Symfony\Component\Mailer\Transport\TransportInterface
     {
-        $httpClient = HttpClient::create();
+        // symfony/http-client is optional: without it, transports needing HTTP create their own client or fail on use
+        $httpClient = class_exists(HttpClient::class) ? HttpClient::create() : null;
         $factories = iterator_to_array(Transport::getDefaultFactories(client: $httpClient));
-        foreach ($this->additionalTransportFactories as $factoryClass) {
+        foreach ($this->additionalTransportFactories ?? [] as $factoryClass) {
             if (class_exists($factoryClass)) {
                 $factories[] = new $factoryClass(null, $httpClient);
             }

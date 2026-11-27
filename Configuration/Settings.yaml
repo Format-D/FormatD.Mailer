@@ -2,10 +2,11 @@ Neos:
   SymfonyMailer:
     mailer:
       dsn: 'fd-mailer'
-      additionalTransportFactories: []
 
 FormatD:
   Mailer:
+    mailer:
+      additionalTransportFactories: []
     smtpTransport:
       host: '%env:SMTP_HOST%'
       encryption: false
