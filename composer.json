@@ -9,7 +9,9 @@
         "neos/symfonymailer": "*",
         "neos/fluid-adaptor": "^8.3"
     },
-    "suggest": {},
+    "suggest": {
+        "symfony/http-client": "Shared HTTP client for API based transports configured via additionalTransportFactories"
+    },
     "conflict": {
         "neos/swiftmailer": "*"
     },
