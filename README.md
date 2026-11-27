@@ -126,3 +126,17 @@ announced by the server!
 The `options` config is completely optional and could be omitted to use SymfonyMailer's sane defaults. It can be used to
 define query parameters appended to the DSN, as described in
 the [SymfonyMailer documentation](https://symfony.com/doc/current/mailer.html).
+## Additional transport factories
+
+Further Symfony transport factories (e.g. API based bridges like `symfony/brevo-mailer`) can be registered for DSNs
+other than `fd-mailer`:
+
+```
+FormatD:
+  Mailer:
+    mailer:
+      additionalTransportFactories:
+        - 'Symfony\Component\Mailer\Bridge\Brevo\Transport\BrevoTransportFactory'
+```
+
+Install `symfony/http-client` if those transports should share one HTTP client.

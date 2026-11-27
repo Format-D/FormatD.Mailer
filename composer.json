@@ -11,7 +11,8 @@
         "guzzlehttp/guzzle": "^6.0 || ^7.0"
     },
     "suggest": {
-        "neos/form": "Required for EmailFinisher and AssetAttachment form elements"
+        "neos/form": "Required for EmailFinisher and AssetAttachment form elements",
+        "symfony/http-client": "Shared HTTP client for API based transports configured via additionalTransportFactories"
     },
     "conflict": {
         "neos/swiftmailer": "*"
