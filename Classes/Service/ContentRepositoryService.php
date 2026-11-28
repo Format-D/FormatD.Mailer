@@ -6,11 +6,13 @@ use GuzzleHttp\Psr7\Uri;
 use Neos\ContentRepository\Domain\Model\NodeInterface;
 use Neos\ContentRepository\Domain\Service\ContextFactoryInterface;
 use Neos\Flow\Annotations as Flow;
+use Neos\Flow\Http\ServerRequestAttributes;
 use Neos\Flow\Mvc\ActionRequest;
 use Neos\Flow\Mvc\ActionRequestFactory;
 use Neos\Flow\Mvc\ActionResponse;
 use Neos\Flow\Mvc\Controller\Arguments;
 use Neos\Flow\Mvc\Controller\ControllerContext;
+use Neos\Flow\Mvc\Routing\Dto\RouteParameters;
 use Neos\Flow\Mvc\Routing\UriBuilder;
 use Neos\Neos\Domain\Repository\SiteRepository;
 use Neos\Neos\Domain\Service\ContentContext;
@@ -76,6 +78,9 @@ class ContentRepositoryService {
     protected function createActionRequest(): ActionRequest
     {
         $httpRequest = $this->serverRequestFactory->createServerRequest('GET', new Uri((string)$this->baseUri));
+        // Neos resolves the current site from this parameter, which a web request gets from a routing middleware
+        $routeParameters = RouteParameters::createEmpty()->withParameter('requestUriHost', $httpRequest->getUri()->getHost());
+        $httpRequest = $httpRequest->withAttribute(ServerRequestAttributes::ROUTING_PARAMETERS, $routeParameters);
         return $this->actionRequestFactory->createActionRequest($httpRequest);
     }
 }
