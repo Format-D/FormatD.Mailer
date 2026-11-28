@@ -27,6 +27,8 @@ Releases und compatibility:
 | 1.1.x           | >= 6.x <= 8.x     | < 6.0.0             |
 | 1.0.x           | 4.x - 5.x         | < 6.0.0             |
 
+Since 2.0.5, the package requires PHP 8.3 or later.
+
 ## Using the service in your own plugins to use fluid templates for mails
 
 Configure default from address:

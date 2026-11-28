@@ -4,7 +4,7 @@
     "type": "neos-package",
     "license": "MIT",
     "require": {
-        "php": "^8.1",
+        "php": "^8.3",
         "neos/flow": "^8.3",
         "neos/symfonymailer": "*",
         "neos/fluid-adaptor": "^8.3"
