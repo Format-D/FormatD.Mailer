@@ -85,7 +85,7 @@ class ContentRepositoryService {
         return $contentRepository->getContentGraph(WorkspaceName::fromString($workspaceName));
     }
 
-    public function uriForNode(Node $node, ActionRequest $actionRequest = null, $absolute = true, $format = 'html'): UriInterface
+    public function uriForNode(Node $node, ?ActionRequest $actionRequest = null, $absolute = true, $format = 'html'): UriInterface
     {
         $request = $actionRequest ? $actionRequest : $this->actionRequest;
         return $this->nodeUriBuilderFactory
