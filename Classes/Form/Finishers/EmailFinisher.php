@@ -3,10 +3,15 @@
 namespace FormatD\Mailer\Form\Finishers;
 
 use Neos\Flow\Annotations as Flow;
+use Neos\Flow\ResourceManagement\PersistentResource;
 use Neos\Form\Exception\FinisherException;
 use Neos\Form\Core\Model\AbstractFinisher;
+use Neos\Media\Domain\Model\ResourceBasedInterface;
+use Neos\Utility\ObjectAccess;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\HtmlToTextConverter\DefaultHtmlToTextConverter;
+use Symfony\Component\Mime\Part\DataPart;
+use Symfony\Component\Mime\Part\File;
 use Symfony\Component\Mailer\Mailer;
 use FormatD\Mailer\Service\DefaultMailerService;
 
@@ -107,8 +112,55 @@ class EmailFinisher extends AbstractFinisher
             $html,
             $replyToAddress ? new Address($replyToAddress) : null,
             $carbonCopyAddress ? new Address($carbonCopyAddress) : null,
-            $blindCarbonCopyAddress ? new Address($blindCarbonCopyAddress) : null
+            $blindCarbonCopyAddress ? new Address($blindCarbonCopyAddress) : null,
+            $this->createAttachments($formValues)
         );
+    }
+
+    /**
+     * Attachments as the Neos.Form email finisher handles them: with "attachAllPersistentResources", every form value
+     * holding a resource (file uploads, asset attachments); with "attachments", the listed resource paths and form
+     * elements.
+     *
+     * @return DataPart[]
+     * @throws FinisherException
+     */
+    protected function createAttachments(array $formValues): array
+    {
+        $attachments = [];
+        if ($this->parseOption('attachAllPersistentResources')) {
+            foreach ($formValues as $formValue) {
+                if ($formValue instanceof ResourceBasedInterface) {
+                    $formValue = $formValue->getResource();
+                }
+                if ($formValue instanceof PersistentResource) {
+                    $attachments[] = new DataPart($formValue->getStream(), $formValue->getFilename(), $formValue->getMediaType());
+                }
+            }
+        }
+
+        $attachmentConfigurations = $this->parseOption('attachments');
+        if (is_array($attachmentConfigurations)) {
+            foreach ($attachmentConfigurations as $attachmentConfiguration) {
+                if (isset($attachmentConfiguration['resource'])) {
+                    $attachments[] = new DataPart(new File($attachmentConfiguration['resource']));
+                    continue;
+                }
+                if (!isset($attachmentConfiguration['formElement'])) {
+                    throw new FinisherException('The "attachments" options need to specify a "resource" path or a "formElement" containing the resource to attach', 1764331201);
+                }
+                $resource = ObjectAccess::getPropertyPath($formValues, $attachmentConfiguration['formElement']);
+                if (!$resource instanceof PersistentResource) {
+                    continue;
+                }
+                $content = stream_get_contents($resource->getStream());
+                if (!is_bool($content)) {
+                    $attachments[] = new DataPart($content, $resource->getFilename(), $resource->getMediaType());
+                }
+            }
+        }
+
+        return $attachments;
     }
 
     /**

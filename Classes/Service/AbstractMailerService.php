@@ -236,9 +236,10 @@ abstract class AbstractMailerService
      * @param Address|string|null $replyTo
      * @param Address|string|null $cc
      * @param Address|string|null $bcc
+     * @param DataPart[] $attachments
      * @throws InvalidMailerConfigurationException|TransportExceptionInterface
      */
-    public function send($subject, $to, $from = null, $text = null, $html = null, $replyTo = null, $cc = null, $bcc = null)
+    public function send($subject, $to, $from = null, $text = null, $html = null, $replyTo = null, $cc = null, $bcc = null, array $attachments = [])
     {
         if ($from === null) {
             reset($this->defaultFrom);
@@ -253,7 +254,8 @@ abstract class AbstractMailerService
             $html,
             $replyTo,
             $cc,
-            $bcc
+            $bcc,
+            $attachments
         );
 
         $this->sendMail($mail);
