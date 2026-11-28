@@ -251,12 +251,21 @@ abstract class AbstractMailerService
             $to,
             $from,
             $text,
-            $html,
+            null,
             $replyTo,
             $cc,
             $bcc,
             $attachments
         );
+
+        if ($html) {
+            // images are embedded into the mail being built, so their parts travel with the HTML referencing them
+            if ($this->mailSettings['attachEmbeddedImages']) {
+                $this->processedMessage = $mail;
+                $html = $this->attachHtmlInlineImages($html);
+            }
+            $mail->html($html);
+        }
 
         $this->sendMail($mail);
     }
@@ -287,13 +296,7 @@ abstract class AbstractMailerService
             $this->mailerLogger->error("MAILER_ERROR :: " . $response->getStatusCode());
         }
 
-        $html = $response->getBody()->getContents();
-
-        if ($this->mailSettings['attachEmbeddedImages']) {
-            $html = $this->attachHtmlInlineImages($html);
-        }
-
-        return $html;
+        return $response->getBody()->getContents();
     }
 
     /**
