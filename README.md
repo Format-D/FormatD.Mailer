@@ -60,20 +60,22 @@ FormatD:
 
 ## Logging email dispatch
 
-Every sent email (to, from, subject) is logged via its own logger channel `FormatD.Mailer:MailerLogger`, writing to
-`Data/Logs/Mailer.log`. This can be disabled:
+Logging is off by default. When turned on, every email sent through the `fd-mailer` DSN is logged with its recipient,
+sender and subject. The log goes to its own logger channel `FormatD.Mailer:MailerLogger`, which writes to
+`Data/Logs/Mailer.log`. Emails sent through any other DSN, including those handled by `additionalTransportFactories`,
+are not logged. To turn logging on:
 
 ```
 FormatD:
   Mailer:
     logging:
-      emailDispatch: false
+      emailDispatch: true
 ```
 
-If a mail was intercepted (see `interceptAll`/`bccAll` above), the log entry still shows the *original* recipient,
-sender and subject — not the intercepted ones — since those are the actually relevant values for debugging. This is
-achieved by stashing the original data in an `X-Intercept-Metadata` mail header before rewriting the message. The
-header name can be changed if it collides with something:
+If an email was intercepted (see `interceptAll` and `bccAll` above), the log entry still shows the *original*
+recipient, sender and subject, not the intercepted ones, because those are the values that matter for debugging. To do
+this, the original data is stored in an `X-Intercept-Metadata` email header before the message is rewritten. Change
+the header name if it collides with another header:
 
 ```
 FormatD:

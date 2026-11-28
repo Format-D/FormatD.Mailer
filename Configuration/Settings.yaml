@@ -28,4 +28,4 @@ FormatD:
       address: 'example@example.com'
       name: 'Example'
     logging:
-      emailDispatch: true
+      emailDispatch: false
