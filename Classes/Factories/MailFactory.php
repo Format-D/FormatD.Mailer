@@ -26,11 +26,11 @@ class MailFactory
         string $subject,
         array|Address|string $to,
         Address|string $from,
-        string $text = null,
-        string $html = null,
-        array|Address|string $replyTo = null,
-        array|Address|string $cc = null,
-        array|Address|string $bcc = null,
+        ?string $text = null,
+        ?string $html = null,
+        array|Address|string|null $replyTo = null,
+        array|Address|string|null $cc = null,
+        array|Address|string|null $bcc = null,
         array $attachments = []
     ): Email {
         $mail = new Email();
