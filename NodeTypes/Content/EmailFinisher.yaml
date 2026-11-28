@@ -1,0 +1,32 @@
+FormatD.Mailer:EmailFinisher:
+  superTypes:
+    Neos.Form.Builder:EmailFinisher: true
+  ui:
+    label: 'Email Finisher'
+    help:
+      message: 'Configure e-mail options and select a node based e-mail template.'
+  properties:
+    recipientAddress:
+      validation: ~
+    senderAddress:
+      validation: ~
+    templateSource: [ ]
+    templateNode:
+      type: string
+      ui:
+        label: 'E-Mail Template'
+        inspector:
+          group: 'finisher'
+          position: 'start'
+          editor: 'Neos.Neos/Inspector/Editors/SelectBoxEditor'
+          editorOptions:
+            allowEmpty: true
+            dataSourceIdentifier: formatd-mailer-email-reference
+    format:
+      defaultValue: 'html'
+      ui:
+        inspector:
+          editorOptions:
+            values:
+              'plaintext': []
+              'multipart': []

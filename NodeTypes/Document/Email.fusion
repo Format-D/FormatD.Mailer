@@ -1,0 +1,45 @@
+
+prototype(FormatD.Mailer:Document.Email) < prototype(Neos.Neos:Page) {
+
+	head {
+		metaDescriptionTag >
+		metaKeywordsTag >
+		metaRobotsTag >
+		canonicalLink >
+		alternateLanguageLinks >
+		twitterCard >
+		openGraphMetaTags >
+		facebookMetaTags >
+		structuredData >
+		formatDComponentLoaderRegistry >
+
+		email = FormatD.Mailer:Fragment.Head
+	}
+
+	bodyTag.attributes.style = 'word-spacing:normal;'
+
+	body = Neos.Fusion:Component {
+
+		header = Neos.Neos:ContentCollection {
+			nodePath = 'header'
+		}
+
+		main = Neos.Neos:ContentCollection {
+			nodePath = 'main'
+		}
+
+		footer = Neos.Neos:ContentCollection {
+			nodePath = 'footer'
+		}
+
+		renderer = Neos.Fusion:Join {
+			main = afx`
+				<FormatD.Mailer:Fragment.Body
+					headerContent={props.header}
+					mainContent={props.main}
+					footerContent={props.footer}
+				/>
+			`
+		}
+  	}
+}

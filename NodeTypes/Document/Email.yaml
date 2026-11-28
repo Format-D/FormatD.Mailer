@@ -1,0 +1,16 @@
+FormatD.Mailer:Document.Email:
+  superTypes:
+    'Neos.Neos:Document': true
+  ui:
+    label: 'Email'
+    icon: 'envelope'
+    position: 99
+  childNodes:
+    header:
+      type: 'Neos.Neos:ContentCollection'
+      position: 'before main'
+    main:
+      type: 'Neos.Neos:ContentCollection'
+    footer:
+      type: 'Neos.Neos:ContentCollection'
+      position: 'after main'

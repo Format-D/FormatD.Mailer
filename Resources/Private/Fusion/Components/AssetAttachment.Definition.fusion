@@ -1,0 +1,3 @@
+prototype(FormatD.Mailer:AssetAttachment.Definition) < prototype(Neos.Form.Builder:FormElement.Definition) {
+    formElementType = 'FormatD.Mailer:AssetAttachment'
+}

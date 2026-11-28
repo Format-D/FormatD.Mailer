@@ -1,0 +1,20 @@
+prototype(FormatD.Mailer:EmailFinisher.Definition) < prototype(Neos.Form.Builder:Finisher.Definition) {
+	formElementType = 'FormatD.Mailer:EmailFinisher'
+
+	options {
+		templateNode = ${null}
+		subject = ${null}
+		recipientAddress = ${null}
+		recipientName = ''
+		senderAddress = ${null}
+		senderName = ''
+		replyToAddress = ${null}
+		carbonCopyAddress = ${null}
+		blindCarbonCopyAddress = ${null}
+		format = 'html'
+		variables = Neos.Fusion:DataStructure {
+			baseUri = ${Configuration.setting('Neos.Flow.http.baseUri')}
+			domainName = ${String.pregReplace(Configuration.setting('Neos.Flow.http.baseUri'), "/https?:\/\/(.*)\//", "$1")}
+		}
+	}
+}

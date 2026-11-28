@@ -1,0 +1,19 @@
+prototype(FormatD.Mailer:AssetAttachment) < prototype(Neos.Form:HiddenField) {
+    label >
+    @process.wrap.attributes.class = ${elementHasValidationErrors ? 'form--group-hidden error' : 'form--group-hidden'}
+    fieldContainer.field.attributes.name = "asset-attachment"
+    fieldContainer.field.attributes.value = ${element.properties.asset.identifier}
+
+    validationErrors = Neos.Fusion:Tag {
+        tagName = 'span'
+        attributes {
+            class = 'help-inline'
+        }
+        content = Neos.Fusion:Loop {
+            items = ${elementValidationErrors}
+            itemName = 'error'
+            itemRenderer = ${error.message}
+        }
+        @if.hasValidationErrors = ${elementHasValidationErrors}
+    }
+}

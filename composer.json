@@ -5,11 +5,13 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
-        "neos/flow": "^8.3",
+        "neos/neos": "^8.3",
         "neos/symfonymailer": "*",
-        "neos/fluid-adaptor": "^8.3"
+        "neos/fluid-adaptor": "^8.3",
+        "guzzlehttp/guzzle": "^6.0 || ^7.0"
     },
     "suggest": {
+        "neos/form": "Required for EmailFinisher and AssetAttachment form elements",
         "symfony/http-client": "Shared HTTP client for API based transports configured via additionalTransportFactories"
     },
     "conflict": {
