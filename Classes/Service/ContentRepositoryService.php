@@ -28,7 +28,7 @@ use Psr\Http\Message\UriInterface;
 class ContentRepositoryService {
 
     #[Flow\InjectConfiguration(package: "Neos.Flow", path: "http.baseUri")]
-    protected string $baseUri;
+    protected ?string $baseUri = null;
 
     #[Flow\InjectConfiguration(package: "FormatD.Mailer", path: "site")]
     protected array $siteConfig;
@@ -45,26 +45,29 @@ class ContentRepositoryService {
     #[Flow\Inject]
     protected NodeUriBuilderFactory $nodeUriBuilderFactory;
 
-    protected ActionRequest $actionRequest;
+    protected ?ActionRequest $actionRequest = null;
 
     public function initializeObject()
     {
+        // without a base URI no request can be built here; uriForNode() reports that when it is called
+        if (!$this->baseUri) {
+            return;
+        }
+
         $httpRequest = $this->serverRequestFactory->createServerRequest('GET', new Uri($this->baseUri));
 
-        if (isset($this->baseUri) && is_string($this->baseUri) && !empty($this->baseUri)) {
-            /** @var RouteParameters $routingParameters */
-            $routingParameters = $httpRequest->getAttribute(ServerRequestAttributes::ROUTING_PARAMETERS) ?? RouteParameters::createEmpty();
-            $routingParameters = $routingParameters->withParameter('requestUriHost', $this->baseUri);
-            $routingParameters = $routingParameters->withParameter('siteNodeName', $this->siteConfig['siteNodeName']);
-            $routingParameters = $routingParameters->withParameter('contentRepositoryId', $this->siteConfig['contentRepositoryId']);
+        /** @var RouteParameters $routingParameters */
+        $routingParameters = $httpRequest->getAttribute(ServerRequestAttributes::ROUTING_PARAMETERS) ?? RouteParameters::createEmpty();
+        $routingParameters = $routingParameters->withParameter('requestUriHost', $this->baseUri);
+        $routingParameters = $routingParameters->withParameter('siteNodeName', $this->siteConfig['siteNodeName']);
+        $routingParameters = $routingParameters->withParameter('contentRepositoryId', $this->siteConfig['contentRepositoryId']);
 
-            $httpRequestAttributes = $httpRequest->getAttributes();
-            $httpRequestAttributes[ServerRequestAttributes::ROUTING_PARAMETERS] = $routingParameters;
-            $reflectedHttpRequest = new \ReflectionObject($httpRequest);
-            $reflectedHttpRequestAttributes = $reflectedHttpRequest->getProperty('attributes');
-            $reflectedHttpRequestAttributes->setAccessible(true);
-            $reflectedHttpRequestAttributes->setValue($httpRequest, $httpRequestAttributes);
-        }
+        $httpRequestAttributes = $httpRequest->getAttributes();
+        $httpRequestAttributes[ServerRequestAttributes::ROUTING_PARAMETERS] = $routingParameters;
+        $reflectedHttpRequest = new \ReflectionObject($httpRequest);
+        $reflectedHttpRequestAttributes = $reflectedHttpRequest->getProperty('attributes');
+        $reflectedHttpRequestAttributes->setAccessible(true);
+        $reflectedHttpRequestAttributes->setValue($httpRequest, $httpRequestAttributes);
 
         $this->actionRequest = $this->actionRequestFactory->createActionRequest($httpRequest);
     }
@@ -87,7 +90,10 @@ class ContentRepositoryService {
 
     public function uriForNode(Node $node, ?ActionRequest $actionRequest = null, $absolute = true, $format = 'html'): UriInterface
     {
-        $request = $actionRequest ? $actionRequest : $this->actionRequest;
+        $request = $actionRequest ?? $this->actionRequest;
+        if ($request === null) {
+            throw new \RuntimeException('Neos.Flow.http.baseUri must be set to build the URI of an email document', 1764335201);
+        }
         return $this->nodeUriBuilderFactory
             ->forActionRequest($request)
             ->uriFor(
