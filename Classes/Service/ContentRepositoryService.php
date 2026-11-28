@@ -77,7 +77,10 @@ class ContentRepositoryService {
 
     protected function createActionRequest(): ActionRequest
     {
-        $httpRequest = $this->serverRequestFactory->createServerRequest('GET', new Uri((string)$this->baseUri));
+        if (!$this->baseUri) {
+            throw new \RuntimeException('Neos.Flow.http.baseUri must be set to build the URI of an email document', 1764335201);
+        }
+        $httpRequest = $this->serverRequestFactory->createServerRequest('GET', new Uri($this->baseUri));
         // Neos resolves the current site from this parameter, which a web request gets from a routing middleware
         $routeParameters = RouteParameters::createEmpty()->withParameter('requestUriHost', $httpRequest->getUri()->getHost());
         $httpRequest = $httpRequest->withAttribute(ServerRequestAttributes::ROUTING_PARAMETERS, $routeParameters);
