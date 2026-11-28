@@ -30,6 +30,8 @@ Releases and compatibility:
 | 1.1.x           | >= 6.x <= 8.x     | < 6.0.0             |
 | 1.0.x           | 4.x - 5.x         | < 6.0.0             |
 
+The package requires PHP 8.3 or later.
+
 ## Using the service to send Fluid templates as emails
 
 Configure the default sender address:
