@@ -20,6 +20,7 @@ FormatD:
       active: false
       recipients: []
       noInterceptPatterns: []
+      interceptDataHeaderName: 'X-Intercept-Metadata'
     bccAll:
       active: false
       recipients: []
@@ -34,3 +35,5 @@ FormatD:
       contentRepositoryId: 'default'
     templateNodes:
       test: ''
+    logging:
+      emailDispatch: false

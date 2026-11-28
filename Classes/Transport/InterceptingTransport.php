@@ -2,18 +2,14 @@
 
 namespace FormatD\Mailer\Transport;
 
-use Neos\Flow\Annotations as Flow;
 use Symfony\Component\Mailer\Envelope;
 use Symfony\Component\Mailer\SentMessage;
 use Symfony\Component\Mailer\Transport\TransportInterface;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Mime\RawMessage;
 
-class InterceptingTransport implements TransportInterface
+class InterceptingTransport extends AbstractTransport
 {
-	#[Flow\InjectConfiguration(package: 'FormatD.Mailer', type: 'Settings')]
-	protected array $settings;
-
 	public function __construct(protected TransportInterface $actualTransport)
 	{
 	}
@@ -43,6 +39,13 @@ class InterceptingTransport implements TransportInterface
 				}
 			}
 
+			// collected before the subject and recipients are rewritten, so the dispatch log shows the original values
+			$interceptMetaData = [
+				'to' => array_map(fn($a) => $a->toString(), $message->getTo()),
+				'from' => array_map(fn($a) => $a->toString(), $message->getFrom()),
+				'subject' => $message->getSubject(),
+			];
+
 			$interceptedRecipients = [
 				reset($oldTo)->getAddress(),
 				$oldCc ? 'CC: ' . reset($oldCc)->getAddress() : '',
@@ -54,6 +57,9 @@ class InterceptingTransport implements TransportInterface
 
 			$message->getHeaders()->remove('Cc');
 			$message->getHeaders()->remove('Bcc');
+
+			$interceptDataHeaderName = $this->settings['interceptAll']['interceptDataHeaderName'] ?? self::DEFAULT_INTERCEPT_DATA_HEADER_NAME;
+			$message->getHeaders()->addTextHeader($interceptDataHeaderName, \json_encode($interceptMetaData));
 
 			$first = true;
 			foreach ($this->settings['interceptAll']['recipients'] as $email) {

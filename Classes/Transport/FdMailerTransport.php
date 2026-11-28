@@ -3,19 +3,21 @@
 namespace FormatD\Mailer\Transport;
 
 use Neos\Flow\Annotations as Flow;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Mailer\Envelope;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Symfony\Component\Mailer\SentMessage;
 use Symfony\Component\Mailer\Transport;
 use Symfony\Component\Mailer\Transport\TransportInterface;
 use Symfony\Component\Mime\RawMessage;
+use Symfony\Component\Mime\Email;
 
-class FdMailerTransport implements TransportInterface
+class FdMailerTransport extends AbstractTransport
 {
-	#[Flow\InjectConfiguration(package: 'FormatD.Mailer', type: 'Settings')]
-	protected array $settings;
-
 	protected ?TransportInterface $actualTransport = null;
+
+	#[Flow\Inject(name: "FormatD.Mailer:MailerLogger", lazy: false)]
+	protected LoggerInterface $logger;
 
 	/**
 	 * @throws TransportExceptionInterface|\Exception
@@ -25,7 +27,12 @@ class FdMailerTransport implements TransportInterface
 		if ($this->actualTransport === null) {
 			$this->actualTransport = Transport::fromDsn($this->getActualTransportDsn());
 		}
-		return $this->actualTransport->send($message);
+
+		$sentMessage = $this->actualTransport->send($message, $envelope);
+
+		$this->logEmailDispatch($sentMessage, $message);
+
+		return $sentMessage;
 	}
 
 	/**
@@ -65,5 +72,38 @@ class FdMailerTransport implements TransportInterface
 	public function __toString(): string
 	{
 		return 'fd-mailer';
+	}
+
+	/**
+	 * @throws \JsonException
+	 */
+	protected function logEmailDispatch(?SentMessage $sentMessage, RawMessage $message): void
+	{
+		$isLoggable = $sentMessage instanceof SentMessage
+			&& $message instanceof Email
+			&& $this->settings['logging']['emailDispatch'];
+
+		if (!$isLoggable) {
+			return;
+		}
+
+		$interceptDataHeaderName = $this->settings['interceptAll']['interceptDataHeaderName'] ?? self::DEFAULT_INTERCEPT_DATA_HEADER_NAME;
+		$isIntercepted = $message->getHeaders()->has($interceptDataHeaderName);
+		if ($isIntercepted) {
+			$interceptMetaData = json_decode($message->getHeaders()->get($interceptDataHeaderName)->getBody(), true, 16, JSON_THROW_ON_ERROR);
+		}
+
+		$subject = (!$isIntercepted ? $message->getSubject() : $interceptMetaData['subject']) ?? '';
+		if (mb_strlen($subject) > 50) {
+			$subject = mb_substr($subject, 0, 50) . ' …';
+		}
+		$from = !$isIntercepted
+			? implode(', ', array_map(fn($a) => $a->toString(), $message->getFrom()))
+			: implode(', ', $interceptMetaData['from']);
+		$to = !$isIntercepted
+			? implode(', ', array_map(fn($a) => $a->toString(), $message->getTo()))
+			: implode(', ', $interceptMetaData['to']);
+
+		$this->logger->info(vsprintf('Sent email to %s (from %s) with subject "%s"', [$to, $from, $subject]));
 	}
 }
