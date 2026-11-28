@@ -228,7 +228,7 @@ abstract class AbstractMailerService
     /**
      * Convenience method to send an email with individual parameters.
      * Uses MailFactory to create the email and routes through sendMail()
-     * which is intercepted by the AOP DebuggingAspect.
+     * which is intercepted by the AOP MailerTransportAspect.
      *
      * @param string $subject
      * @param Address[]|Address|string $to
