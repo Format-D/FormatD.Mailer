@@ -11,7 +11,7 @@ use FormatD\Mailer\Service\DefaultMailerService;
 
 /**
  * Email finisher that sends emails using Content Repository template nodes.
- * Interception is handled at the transport level by DebuggingAspect.
+ * Interception is handled at the transport level by MailerTransportAspect.
  */
 class EmailFinisher extends AbstractFinisher
 {
