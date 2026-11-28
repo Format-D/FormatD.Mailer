@@ -106,7 +106,15 @@ when a form is submitted. In its inspector, select the email document under "E-M
   the file of one form element (`formElement: <identifier>`), as in the Neos.Form email finisher.
 
 The form element `FormatD.Mailer:AssetAttachment` ("Attachment") lets the editor select an asset from the media module,
-which is attached to the email. Visitors cannot change which asset is attached.
+which is attached to the email. Visitors cannot change which asset is attached. The element renders with the default
+Fluid form renderer and with `neos/form-fusionrenderer`.
+
+The finisher fetches the email document over HTTP while the form request is still running. The PHP built-in server
+started by `./flow server:run` handles one request at a time, so start it with more workers for local development:
+
+```
+PHP_CLI_SERVER_WORKERS=4 ./flow server:run
+```
 
 ## Intercept all emails in a development environment
 
