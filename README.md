@@ -1,37 +1,40 @@
 # FormatD.Mailer
 
-A Template Mailer for Neos Flow or/and CMS Projects.
+A template mailer for Neos Flow and Neos CMS projects.
 
-## What does it do?
+## Features
 
-This package provides a service class intended to be used as base class for sending Fluid templates as mails.
-In addition it contains a debugging aspect for cutting off and/or redirecting all mails (sent by SymfonyMailer) in a
-development environment.
-Moreover, it supports using environment variables to build the DSN for the Symfony Mailer.
+- Base service class for sending Fluid templates as emails
+- Interception and redirection of all emails sent by Symfony Mailer (e.g. in a development or review environment)
+- Optional logging of sent emails
+- Embedding of images into the email body
+- SMTP transport DSN built from environment variables
+- Additional Symfony transport factories for API-based transports
 
-## Kompatiblität
+## Compatibility
 
 Versioning scheme:
 
-     1.0.0 
+     1.0.0
      | | |
-     | | Bugfix Releases (non breaking)
-     | Neos Compatibility Releases (non breaking except framework dependencies)
-     Feature Releases (breaking)
+     | | Bugfix releases (non-breaking)
+     | Neos compatibility releases (non-breaking except framework dependencies)
+     Feature releases (breaking)
 
-Releases und compatibility:
+Releases and compatibility:
 
-| Package-Version | Neos Flow Version | `neos/form` Version |
+| Package version | Neos Flow version | `neos/form` version |
 |-----------------|-------------------|---------------------|
+| 3.0.x           | 9.x               | >= 6.0.0            |
 | 2.0.x           | 8.x               | >= 6.0.0            |
 | 1.1.x           | >= 6.x <= 8.x     | < 6.0.0             |
 | 1.0.x           | 4.x - 5.x         | < 6.0.0             |
 
-Since 2.0.5, the package requires PHP 8.3 or later.
+The package requires PHP 8.3 or later.
 
-## Using the service in your own plugins to use fluid templates for mails
+## Using the service to send Fluid templates as emails
 
-Configure default from address:
+Configure the default sender address:
 
 ```
 FormatD:
@@ -41,13 +44,13 @@ FormatD:
       name: 'Example'
 ```
 
-Extend AbstractMailerService and add methods as needed following the example of sendTestMail().
+Extend `AbstractMailerService` and add methods as needed, following the example of `sendTestMail()`.
 
-## intercept all mails in a dev environment
+## Intercept all emails in a development environment
 
-Configure the mailer to intercept all mails send by your neos installation (not only by the service).
+Configure the mailer to intercept all emails sent by your Neos installation, not only those sent by the service.
 
-This is an example which intercepts all mails and redirects them to example@example.com and secondexample@example.com:
+This example intercepts all emails and redirects them to `example@example.com` and `secondexample@example.com`:
 
 ```
 FormatD:
@@ -86,17 +89,16 @@ FormatD:
       interceptDataHeaderName: 'X-Intercept-Metadata'
 ```
 
-## Handling Embedded Images
+## Handling embedded images
 
-The method `AbstractMailerService->setMailContentFromStandaloneView()` has a parameter to embed all images into the mail
-body.
-This is handy if you have an installation that is protected by a .htaccess file for example, or the user may not have
-access to the internet when reading the email. GMail also cannot display images if they are included from a local
-domain.
+The method `AbstractMailerService->setMailContentFromStandaloneView()` has a parameter to embed all images into the
+email body.
+This helps when the installation is protected, for example by an `.htaccess` file, or when the recipient has no
+internet access while reading the email. Gmail also cannot display images included from a local domain.
 
-FormatD.Mailer can be configured to replace all image urls by local paths (if you specify a baseUrl in your flow
+FormatD.Mailer can be configured to replace all image URLs with local paths (if you specify a baseUrl in your Flow
 configuration).
-This is needed it the server cannot make a web-request to itself (also maybe due to a .htaccess or something).
+This is needed if the server cannot make a web request to itself, for example because of an `.htaccess` file.
 
 ```
 FormatD:
@@ -104,19 +106,18 @@ FormatD:
     localEmbed: true
 ```
 
-## Disable embed for specific images
+## Disabling embedding for specific images
 
-You can disable image embedding for specific images by adding `data-fdmailer-embed="disable"` as data attribute to the
-image tag.
-This is useful for tracking pixels where you dont want the local embedding.
+To keep a specific image from being embedded, add the data attribute `data-fdmailer-embed="disable"` to its image tag.
+This is useful for tracking pixels.
 
-## Using environment variables to build a SMTP transport DSN
+## Using environment variables to build an SMTP transport DSN
 
-Use the special DSN `fd-mailer` in the SymfonyMailer configuration. This transport will then use the configuration
-given under `FormatD.Mailer.smtpTransport` to build the actual DSN and actual SmtpTransport object. `host` is mandatory,
-all other parts are optional.
+Use the special DSN `fd-mailer` in the Symfony Mailer configuration. This transport then uses the configuration under
+`FormatD.Mailer.smtpTransport` to build the actual DSN and SMTP transport. `host` is required; all other parts are
+optional.
 
-For special cases the automatic DSN construction can be omitted by passing the DSN directly at
+For special cases, skip the automatic DSN construction by setting the DSN directly in
 `Neos.SymfonyMailer.mailer.dsn`.
 
 ```
@@ -133,8 +134,8 @@ FormatD:
       port: '%env:SMTP_PORT%'
       username: '%env:SMTP_USERNAME%'
       password: '%env:SMTP_PASSWORD%'
-       
-      # Optional: Query params appended to the DSN, use with caution and only when necessary
+
+      # Optional: query parameters appended to the DSN, use with caution and only when necessary
       options:
         # Do not verify server TLS certificate
         verify_peer: 1
@@ -142,22 +143,19 @@ FormatD:
         auto_tls: 'false'
         # Use `STARTTLS` even when not announced in server capabilities
         require_tls: 'true'
-        
 ```
 
-The `encryption` param is cast to boolean, with the `'false'` string being interpreted falsy as well. If true, the
-scheme will be `smtps`, thus the Symfony SMTP transport tries to establish a TLS encrypted channel right away. If
-`encryption` is false, then the transport will still try to upgrade the connection via `STARTTLS`, when that is
-announced by the server!
+The `encryption` parameter is cast to a boolean; the string `'false'` also counts as false. If true, the scheme is
+`smtps`, so the Symfony SMTP transport establishes a TLS-encrypted channel right away. If false, the transport still
+upgrades the connection via `STARTTLS` when the server announces it.
 
-The `options` config is completely optional and could be omitted to use SymfonyMailer's sane defaults. It can be used to
-define query parameters appended to the DSN, as described in
-the [SymfonyMailer documentation](https://symfony.com/doc/current/mailer.html).
+The `options` setting is optional; omit it to use the Symfony Mailer defaults. It defines query parameters appended to
+the DSN, as described in the [Symfony Mailer documentation](https://symfony.com/doc/current/mailer.html).
 
 ## Additional transport factories
 
-Further Symfony transport factories (e.g. API based bridges like `symfony/brevo-mailer`) can be registered for DSNs
-other than `fd-mailer`:
+Further Symfony transport factories (for example API-based bridges such as `symfony/brevo-mailer`) can be registered
+for DSNs other than `fd-mailer`:
 
 ```
 FormatD:
