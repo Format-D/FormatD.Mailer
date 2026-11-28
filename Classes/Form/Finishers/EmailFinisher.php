@@ -200,10 +200,24 @@ class EmailFinisher extends AbstractFinisher
                     $replacement = $formValues[$match];
                 }
 
-                $emailHtml = str_replace("###{$match}###", $replacement, $emailHtml);
+                $emailHtml = str_replace("###{$match}###", $this->formatMarkerValue($replacement), $emailHtml);
             }
         }
 
         return $emailHtml;
+    }
+
+    /**
+     * Form values are visitor input: they are HTML-escaped, so they cannot add markup or links to the email
+     */
+    protected function formatMarkerValue(mixed $value): string
+    {
+        if (is_array($value)) {
+            return implode(', ', array_map(fn (mixed $item) => $this->formatMarkerValue($item), $value));
+        }
+        if (is_scalar($value) || $value instanceof \Stringable) {
+            return htmlspecialchars((string)$value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        }
+        return '';
     }
 }
