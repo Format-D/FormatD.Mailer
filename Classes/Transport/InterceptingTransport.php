@@ -2,7 +2,6 @@
 
 namespace FormatD\Mailer\Transport;
 
-use Neos\Flow\Annotations as Flow;
 use Symfony\Component\Mailer\Envelope;
 use Symfony\Component\Mailer\SentMessage;
 use Symfony\Component\Mailer\Transport\TransportInterface;
@@ -40,6 +39,13 @@ class InterceptingTransport extends AbstractTransport
 				}
 			}
 
+			// collected before the subject and recipients are rewritten, so the dispatch log shows the original values
+			$interceptMetaData = [
+				'to' => array_map(fn($a) => $a->toString(), $message->getTo()),
+				'from' => array_map(fn($a) => $a->toString(), $message->getFrom()),
+				'subject' => $message->getSubject(),
+			];
+
 			$interceptedRecipients = [
 				reset($oldTo)->getAddress(),
 				$oldCc ? 'CC: ' . reset($oldCc)->getAddress() : '',
@@ -51,12 +57,6 @@ class InterceptingTransport extends AbstractTransport
 
 			$message->getHeaders()->remove('Cc');
 			$message->getHeaders()->remove('Bcc');
-
-			$interceptMetaData = [
-				'to' => array_map(fn($a) => $a->toString(), $message->getTo()),
-				'from' => array_map(fn($a) => $a->toString(), $message->getFrom()),
-				'subject' => $message->getSubject(),
-			];
 
 			$interceptDataHeaderName = $this->settings['interceptAll']['interceptDataHeaderName'] ?? self::DEFAULT_INTERCEPT_DATA_HEADER_NAME;
 			$message->getHeaders()->addTextHeader($interceptDataHeaderName, \json_encode($interceptMetaData));

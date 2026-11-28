@@ -93,7 +93,7 @@ class FdMailerTransport extends AbstractTransport
 			$interceptMetaData = json_decode($message->getHeaders()->get($interceptDataHeaderName)->getBody(), true, 16, JSON_THROW_ON_ERROR);
 		}
 
-		$subject = !$isIntercepted ? $message->getSubject() : $interceptMetaData['subject'];
+		$subject = (!$isIntercepted ? $message->getSubject() : $interceptMetaData['subject']) ?? '';
 		if (mb_strlen($subject) > 50) {
 			$subject = mb_substr($subject, 0, 50) . ' …';
 		}
