@@ -228,7 +228,7 @@ abstract class AbstractMailerService
     /**
      * Convenience method to send an email with individual parameters.
      * Uses MailFactory to create the email and routes through sendMail()
-     * which is intercepted by the AOP DebuggingAspect.
+     * which is intercepted by the AOP MailerTransportAspect.
      *
      * @param string $subject
      * @param Address[]|Address|string $to
@@ -238,9 +238,10 @@ abstract class AbstractMailerService
      * @param Address|string|null $replyTo
      * @param Address|string|null $cc
      * @param Address|string|null $bcc
+     * @param DataPart[] $attachments
      * @throws InvalidMailerConfigurationException|TransportExceptionInterface
      */
-    public function send($subject, $to, $from = null, $text = null, $html = null, $replyTo = null, $cc = null, $bcc = null)
+    public function send($subject, $to, $from = null, $text = null, $html = null, $replyTo = null, $cc = null, $bcc = null, array $attachments = [])
     {
         if ($from === null) {
             reset($this->defaultFrom);
@@ -252,11 +253,21 @@ abstract class AbstractMailerService
             $to,
             $from,
             $text,
-            $html,
+            null,
             $replyTo,
             $cc,
-            $bcc
+            $bcc,
+            $attachments
         );
+
+        if ($html) {
+            // images are embedded into the mail being built, so their parts travel with the HTML referencing them
+            if ($this->mailSettings['attachEmbeddedImages']) {
+                $this->processedMessage = $mail;
+                $html = $this->attachHtmlInlineImages($html);
+            }
+            $mail->html($html);
+        }
 
         $this->sendMail($mail);
     }
@@ -298,13 +309,7 @@ abstract class AbstractMailerService
             $this->mailerLogger->error("MAILER_ERROR :: " . $response->getStatusCode());
         }
 
-        $html = $response->getBody()->getContents();
-
-        if ($this->mailSettings['attachEmbeddedImages']) {
-            $html = $this->attachHtmlInlineImages($html);
-        }
-
-        return $html;
+        return $response->getBody()->getContents();
     }
 
     /**

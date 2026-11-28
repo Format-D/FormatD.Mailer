@@ -6,6 +6,7 @@ namespace FormatD\Mailer\Factories;
 
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
+use Symfony\Component\Mime\Part\DataPart;
 
 class MailFactory
 {
@@ -18,17 +19,19 @@ class MailFactory
      * @param Address[]|Address|string|null $replyTo
      * @param Address[]|Address|string|null $cc
      * @param Address[]|Address|string|null $bcc
+     * @param DataPart[] $attachments
      * @return Email
      */
     public function createMail(
         string $subject,
         array|Address|string $to,
         Address|string $from,
-        string $text = null,
-        string $html = null,
-        array|Address|string $replyTo = null,
-        array|Address|string $cc = null,
-        array|Address|string $bcc = null
+        ?string $text = null,
+        ?string $html = null,
+        array|Address|string|null $replyTo = null,
+        array|Address|string|null $cc = null,
+        array|Address|string|null $bcc = null,
+        array $attachments = []
     ): Email {
         $mail = new Email();
 
@@ -72,6 +75,10 @@ class MailFactory
 
         if ($html) {
             $mail->html($html);
+        }
+
+        foreach ($attachments as $attachment) {
+            $mail->addPart($attachment);
         }
 
         return $mail;

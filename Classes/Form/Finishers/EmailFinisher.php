@@ -3,15 +3,21 @@
 namespace FormatD\Mailer\Form\Finishers;
 
 use Neos\Flow\Annotations as Flow;
+use Neos\Flow\ResourceManagement\PersistentResource;
 use Neos\Form\Exception\FinisherException;
 use Neos\Form\Core\Model\AbstractFinisher;
+use Neos\Media\Domain\Model\ResourceBasedInterface;
+use Neos\Utility\ObjectAccess;
 use Symfony\Component\Mime\Address;
+use Symfony\Component\Mime\HtmlToTextConverter\DefaultHtmlToTextConverter;
+use Symfony\Component\Mime\Part\DataPart;
+use Symfony\Component\Mime\Part\File;
 use Symfony\Component\Mailer\Mailer;
 use FormatD\Mailer\Service\DefaultMailerService;
 
 /**
  * Email finisher that sends emails using Content Repository template nodes.
- * Interception is handled at the transport level by DebuggingAspect.
+ * Interception is handled at the transport level by MailerTransportAspect.
  */
 class EmailFinisher extends AbstractFinisher
 {
@@ -96,17 +102,87 @@ class EmailFinisher extends AbstractFinisher
 
         $emailHtml = $this->mailerService->getHtml($this->mailerService->getNodeById($templateNode));
         $parsedHtml = $this->replaceMarkerWithFormValues($formValues, $emailHtml);
+        [$text, $html] = $this->createBodies($format, $parsedHtml);
 
         $this->mailerService->send(
             $subject,
             new Address($recipientAddress, $recipientName),
             new Address($senderAddress, $senderName),
-            '',
-            $parsedHtml,
+            $text,
+            $html,
             $replyToAddress ? new Address($replyToAddress) : null,
             $carbonCopyAddress ? new Address($carbonCopyAddress) : null,
-            $blindCarbonCopyAddress ? new Address($blindCarbonCopyAddress) : null
+            $blindCarbonCopyAddress ? new Address($blindCarbonCopyAddress) : null,
+            $this->createAttachments($formValues)
         );
+    }
+
+    /**
+     * Attachments as the Neos.Form email finisher handles them: with "attachAllPersistentResources", every form value
+     * holding a resource (file uploads, asset attachments); with "attachments", the listed resource paths and form
+     * elements.
+     *
+     * @return DataPart[]
+     * @throws FinisherException
+     */
+    protected function createAttachments(array $formValues): array
+    {
+        $attachments = [];
+        if ($this->parseOption('attachAllPersistentResources')) {
+            foreach ($formValues as $formValue) {
+                if ($formValue instanceof ResourceBasedInterface) {
+                    $formValue = $formValue->getResource();
+                }
+                if ($formValue instanceof PersistentResource) {
+                    $attachments[] = new DataPart($formValue->getStream(), $formValue->getFilename(), $formValue->getMediaType());
+                }
+            }
+        }
+
+        $attachmentConfigurations = $this->parseOption('attachments');
+        if (is_array($attachmentConfigurations)) {
+            foreach ($attachmentConfigurations as $attachmentConfiguration) {
+                if (isset($attachmentConfiguration['resource'])) {
+                    $attachments[] = new DataPart(new File($attachmentConfiguration['resource']));
+                    continue;
+                }
+                if (!isset($attachmentConfiguration['formElement'])) {
+                    throw new FinisherException('The "attachments" options need to specify a "resource" path or a "formElement" containing the resource to attach', 1764331201);
+                }
+                $resource = ObjectAccess::getPropertyPath($formValues, $attachmentConfiguration['formElement']);
+                if (!$resource instanceof PersistentResource) {
+                    continue;
+                }
+                $content = stream_get_contents($resource->getStream());
+                if (!is_bool($content)) {
+                    $attachments[] = new DataPart($content, $resource->getFilename(), $resource->getMediaType());
+                }
+            }
+        }
+
+        return $attachments;
+    }
+
+    /**
+     * The template node only renders HTML: the text part of the plaintext and multipart formats is derived from it.
+     * Any other format sends HTML only, as the Neos.Form email finisher does.
+     *
+     * @return array{0: string|null, 1: string|null} text and HTML body
+     */
+    protected function createBodies(?string $format, string $html): array
+    {
+        return match ($format) {
+            self::FORMAT_PLAINTEXT => [$this->convertHtmlToText($html), null],
+            self::FORMAT_MULTIPART => [$this->convertHtmlToText($html), $html],
+            default => [null, $html],
+        };
+    }
+
+    protected function convertHtmlToText(string $html): string
+    {
+        // the converter only strips tags: entities like &amp; would otherwise end up in the text verbatim
+        $text = (new DefaultHtmlToTextConverter())->convert($html, 'utf-8');
+        return trim(html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
     }
 
     protected function replaceMarkerWithFormValues($formValues, $emailHtml)
@@ -124,10 +200,24 @@ class EmailFinisher extends AbstractFinisher
                     $replacement = $formValues[$match];
                 }
 
-                $emailHtml = str_replace("###{$match}###", $replacement, $emailHtml);
+                $emailHtml = str_replace("###{$match}###", $this->formatMarkerValue($replacement), $emailHtml);
             }
         }
 
         return $emailHtml;
+    }
+
+    /**
+     * Form values are visitor input: they are HTML-escaped, so they cannot add markup or links to the email
+     */
+    protected function formatMarkerValue(mixed $value): string
+    {
+        if (is_array($value)) {
+            return implode(', ', array_map(fn (mixed $item) => $this->formatMarkerValue($item), $value));
+        }
+        if (is_scalar($value) || $value instanceof \Stringable) {
+            return htmlspecialchars((string)$value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        }
+        return '';
     }
 }
